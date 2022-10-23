@@ -3,7 +3,7 @@
 .vscode
 *.pth
 *.pt
-output/*
+Baselines/CLIP-Mesh/output/*
 *.sh
 
 # Byte-compiled / optimized / DLL files
