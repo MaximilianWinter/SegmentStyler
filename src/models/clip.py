@@ -36,7 +36,7 @@ def get_probs(img_path:str, text_prompts:List[str], verbose=True) -> np.ndarray:
     return probs
 
 
-def wrap_dict(probas:np.ndarray, text_prompts:List[str]):
+def wrap_dict(probas:np.ndarray, text_prompts:List[str]) -> dict:
     """Wraps similarity scores into dictionary of corresponding text prompts"""
     return {t: p for t,p  in zip(text_prompts, probas.squeeze().tolist())}
 
