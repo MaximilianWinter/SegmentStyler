@@ -47,8 +47,12 @@ def get_clip_df(img_paths:List[str], text_prompts:List[str], verbose:bool=False)
     """
     data = {}
     for path_ in tqdm(img_paths):
-        probas = get_probs(path_, text_prompts, verbose=verbose)
-        data[path_] = wrap_dict(probas, text_prompts)
+        try:
+            probas = get_probs(path_, text_prompts, verbose=verbose)
+            data[path_] = wrap_dict(probas, text_prompts)
+        except:
+            print(f"Couldn't load data at {path_}")
+            pass
 
     df = pd.DataFrame(data).T
     
