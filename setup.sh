@@ -1,0 +1,1 @@
+conda env remove -n dl3d; sudo rm -f /tmp/cuda-installer.log && conda env create -f environment.yml
