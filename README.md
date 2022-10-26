@@ -7,16 +7,16 @@
 
 ### How to run
 
-Run `setup.sh`.
+1. Run `setup.sh`.
 
 ```bash
 sudo sh ./setup.sh
 ```
 
-Activate environment
+2. Activate environment
 
 ```bash
 conda activate dl3d
 ```
 
-Enjoy ;)
+3. Enjoy ;)
