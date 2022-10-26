@@ -92,7 +92,7 @@ dependencies:
   - zstd=1.4.9=haebb681_0
   - pip:
     - charset-normalizer==2.1.1
-    - clip==1.0
+    - -e git+https://github.com/openai/CLIP.git
     - contourpy==1.0.5
     - fonttools==4.38.0
     - ftfy==6.1.1
@@ -107,4 +107,3 @@ dependencies:
     - tqdm==4.64.1
     - urllib3==1.26.12
     - -e .
-prefix: /home/bellatini/miniconda3/envs/dl3d
