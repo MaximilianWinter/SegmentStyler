@@ -13,10 +13,17 @@
 sudo sh ./setup.sh
 ```
 
-2. Activate environment
+2. Activate environment.
 
 ```bash
 conda activate dl3d
 ```
 
-3. Enjoy ;)
+3. Confirm Weights & Biases installation. More info: [click here](https://wandb.ai/quickstart/pytorch).
+
+```bash
+pip install wandb
+wandb login
+```
+
+4. Enjoy ;)
