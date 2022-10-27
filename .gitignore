@@ -4,7 +4,6 @@
 *.pth
 *.pt
 Baselines/CLIP-Mesh/output/*
-.sh
 Baselines/text2mesh/results/*
 
 # Byte-compiled / optimized / DLL files
