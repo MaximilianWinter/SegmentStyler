@@ -6,7 +6,14 @@
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 
+#PartGlot specific
+PartGlot/data/*
+PartGlot/checkpoints/*
+PartGlot/logs/*
+*.ckpt
+
 # Byte-compiled / optimized / DLL files
+**/__pycache__/**
 __pycache__/
 *.py[cod]
 *$py.class
