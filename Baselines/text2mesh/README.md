@@ -8,7 +8,11 @@
 ### Installation
 
 **Note:** The below installation will fail if run on something other than a CUDA GPU machine.
+
+> Make sure to delete `cuda-installer.log` before continuing.
+
 ```
+sudo rm -f /tmp/cuda-installer.log 
 conda env create --file text2mesh.yml
 conda activate text2mesh
 ```
