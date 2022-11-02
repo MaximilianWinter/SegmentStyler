@@ -11,6 +11,7 @@ setup(
     install_requires=[
         "pandas",
         "torch",
+        "rich",
         "h5py",
         "Pillow",
         "numpy",
