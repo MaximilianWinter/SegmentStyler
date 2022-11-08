@@ -17,3 +17,4 @@ dependencies:
     - git+https://github.com/openai/CLIP.git@d50d76daa670286dd6cacf3bcd80b5e4823fc8e1
     - git+https://github.com/NVIDIAGameWorks/kaolin@a00029e5e093b5a7fe7d3a10bf695c0f01e3bd98
     - pymeshlab==2022.2.post2
+    - pytorch-lightning==1.8.0.post1
