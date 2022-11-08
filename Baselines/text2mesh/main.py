@@ -3,6 +3,7 @@ from tqdm import tqdm
 import kaolin.ops.mesh
 import kaolin as kal
 import torch
+from helpers import get_res, get_background
 from neural_style_field import NeuralStyleField
 from utils import device 
 from render import Renderer
@@ -33,16 +34,7 @@ def run_branched(args):
     # Load CLIP model 
     clip_model, preprocess = clip.load(args.clipmodel, device, jit=args.jit)
     
-    # Adjust output resolution depending on model type 
-    res = 224 
-    if args.clipmodel == "ViT-L/14@336px":
-        res = 336
-    if args.clipmodel == "RN50x4":
-        res = 288
-    if args.clipmodel == "RN50x16":
-        res = 384
-    if args.clipmodel == "RN50x64":
-        res = 448
+    res = get_res(args.clipmodel)
         
     objbase, extension = os.path.splitext(os.path.basename(args.obj_path))
     # Check that isn't already done
@@ -69,10 +61,7 @@ def run_branched(args):
 
     prior_color = torch.full(size=(mesh.faces.shape[0], 3, 3), fill_value=0.5, device=device)
 
-    background = None
-    if args.background is not None:
-        assert len(args.background) == 3
-        background = torch.tensor(args.background).to(device)
+    background = get_background(args.background, torch, device)  
 
     losses = []
 
