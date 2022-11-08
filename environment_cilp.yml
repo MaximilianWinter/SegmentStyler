@@ -1,4 +1,4 @@
-name: dl3d
+name: clip
 channels:
   - pytorch
   - conda-forge

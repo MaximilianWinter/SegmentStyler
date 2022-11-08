@@ -5,6 +5,7 @@
 *.pt
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
+condaenv*
 
 #PartGlot specific
 PartGlot/data/*

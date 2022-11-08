@@ -10,7 +10,7 @@
 1. Run `setup.sh`.
 
 ```bash
-sudo sh ./setup.sh
+sh ./setup.sh
 ```
 
 2. Activate environment.
