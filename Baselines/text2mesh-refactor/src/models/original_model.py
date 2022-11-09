@@ -46,7 +46,11 @@ class Text2MeshOriginal(nn.Module):
         self.default_color = torch.zeros(len(base_mesh.vertices), 3).to(device)
         self.default_color[:, :] = torch.tensor([0.5, 0.5, 0.5]).to(device)
         # Background
-        self.background = self.get_background()
+        if self.args.background is None:
+            self.background = None
+        else:
+            assert len(self.args.background) == 3
+            self.background = torch.tensor(self.args.background).to(device)
 
     def forward(self, vertices):
         # Prop. through MLP

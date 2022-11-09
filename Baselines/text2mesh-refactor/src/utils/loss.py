@@ -11,7 +11,7 @@ def default_loss(encoded_renders_dict, encoded_text, clipavg=None):
                 loss = torch.mean(torch.cosine_similarity(encoded_renders, encoded_text))
 
         elif key in ["augs", "norm_augs", "geo"]:
-            for encoded_renders in encoded_renders_list["augs"]:
+            for encoded_renders in encoded_renders_list:
                 if (clipavg == "view") or (clipavg is None) or (key == "geo"):
                     if encoded_text.shape[0] > 1:
                         loss -= torch.cosine_similarity(torch.mean(encoded_renders, dim=0),

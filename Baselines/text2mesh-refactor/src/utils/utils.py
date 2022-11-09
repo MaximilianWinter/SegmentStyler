@@ -38,7 +38,7 @@ def getRotMat(axis, theta):
     return rot
 
 def report_process(args, i, loss, loss_check, losses):
-    print('iter: {} loss: {}'.format(i, loss.item()))
+    print('iter: {} loss: {}'.format(i, loss))
     if args.lr_plateau and loss_check is not None:
         new_loss_check = np.mean(losses[-100:])
         # If avg loss increased or plateaued then reduce LR

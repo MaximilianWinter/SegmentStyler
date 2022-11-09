@@ -39,4 +39,8 @@ class Trainer():
             torchvision.utils.save_image(rendered_images, os.path.join(save_dir, 'iter_{}.jpg'.format(i)))
 
         with torch.no_grad():
-            return losses_dict["augs"].item()
+            for loss in losses_dict.values():
+                if loss != 0.0:
+                    return loss.item()
+            
+            return None

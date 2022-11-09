@@ -1,11 +1,13 @@
 import kaolin as kal
 import torch
-from utils import device 
-from render import Renderer
-from Normalization import MeshNormalizer
 import numpy as np
 from torchvision import transforms
 import os
+from pathlib import Path
+
+from submodels.render import Renderer
+from utils.Normalization import MeshNormalizer
+from utils.utils import device
 
 
 def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):

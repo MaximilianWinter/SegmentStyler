@@ -1,6 +1,7 @@
-import tqdm
+from tqdm import tqdm
 import copy
 import torch
+from pathlib import Path
 
 from data.mesh import Mesh
 from utils.Normalization import MeshNormalizer
@@ -8,9 +9,12 @@ from models.original_model import Text2MeshOriginal
 from utils.trainer import Trainer
 from utils.export import export_final_results
 from utils.loss import default_loss
-from utils.utils import device, report_process
+from utils.utils import report_process
 
 def train(args):
+    # CREATE OUTPUT DIR
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
     # LOAD MESH AND MODEL
     base_mesh = Mesh(args.obj_path)
     MeshNormalizer(base_mesh)()
@@ -48,7 +52,7 @@ def train(args):
     losses = []
     loss_check = None
     for i in tqdm(range(args.n_iter)):
-        loss = trainer.training_step(save_dir=args.output_dir)
+        loss = trainer.training_step(i, args.clipavg, save_dir=args.output_dir)
         losses.append(loss)
 
         if i % 100 == 0:
