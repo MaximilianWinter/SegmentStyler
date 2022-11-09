@@ -1,5 +1,9 @@
-from utils.processing import train
 import argparse
+
+from utils.processing import train
+from models.original_model import Text2MeshOriginal
+from utils.loss import default_loss
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -82,4 +86,9 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    train(args)
+    config = {
+        "model": Text2MeshOriginal,
+        "loss": default_loss
+    }
+
+    train(args, config)

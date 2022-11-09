@@ -2,23 +2,35 @@ from tqdm import tqdm
 import copy
 import torch
 from pathlib import Path
+import numpy as np
+import random
 
 from data.mesh import Mesh
 from utils.Normalization import MeshNormalizer
-from models.original_model import Text2MeshOriginal
 from utils.trainer import Trainer
 from utils.export import export_final_results
-from utils.loss import default_loss
 from utils.utils import report_process
 
-def train(args):
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+def train(args, config):
     # CREATE OUTPUT DIR
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    # SET SEED
+    set_seed(args.seed)
 
     # LOAD MESH AND MODEL
     base_mesh = Mesh(args.obj_path)
     MeshNormalizer(base_mesh)()
-    text2mesh_model = Text2MeshOriginal(args, base_mesh)
+    text2mesh_model = config["model"](args, base_mesh)
 
     # DEFINE OPTIMIZER
     optimizer = torch.optim.Adam(text2mesh_model.mlp.parameters(), args.learning_rate, weight_decay=args.decay)
@@ -29,7 +41,7 @@ def train(args):
         lr_scheduler = None
     
     # DEFINE LOSS
-    loss_func = default_loss
+    loss_func = config["loss"]
 
     # NETWORK INPUT
     vertices = copy.deepcopy(base_mesh.vertices)
