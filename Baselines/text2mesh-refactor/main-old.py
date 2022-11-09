@@ -13,20 +13,12 @@ import random
 import copy
 import torchvision
 import os
-from PIL import Image
 import argparse
 from pathlib import Path
 from torchvision import transforms
 
 
 def run_branched(args):
-
-    if args.image:
-        img = Image.open(args.image)
-        img = preprocess(img).to(device)
-        encoded_image = clip_model.encode_image(img.unsqueeze(0))
-        if args.no_prompt:
-            norm_encoded = encoded_image
 
     loss_check = None
     vertices = copy.deepcopy(mesh.vertices)
