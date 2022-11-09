@@ -27,3 +27,20 @@ def get_camera_from_view2(elev, azim, r=3.0):
 
     camera_proj = kal.render.camera.generate_transformation_matrix(pos, look_at, direction)
     return camera_proj
+
+
+def get_render_resolution(clipmodel=None):
+        """
+        Sets output resolution depending on model type
+        """
+        res = 224
+        if clipmodel == "ViT-L/14@336px":
+            res = 336
+        if clipmodel == "RN50x4":
+            res = 288
+        if clipmodel == "RN50x16":
+            res = 384
+        if clipmodel == "RN50x64":
+            res = 448
+
+        return res
