@@ -8,9 +8,9 @@ Baselines/text2mesh/results/*
 condaenv*
 
 #PartGlot specific
-PartGlot/data/*
-PartGlot/checkpoints/*
-PartGlot/logs/*
+Baselines/PartGlot/data/*
+Baselines/PartGlot/checkpoints/*
+Baselines/PartGlot/logs/*
 *.ckpt
 
 # Byte-compiled / optimized / DLL files
