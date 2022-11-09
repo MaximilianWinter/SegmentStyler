@@ -36,3 +36,18 @@ def getRotMat(axis, theta):
     rot = math.cos(theta) * np.identity(3) + math.sin(theta) * cprod + \
           (1 - math.cos(theta)) * np.outer(axis, axis)
     return rot
+
+def report_process(args, i, loss, loss_check, losses):
+    print('iter: {} loss: {}'.format(i, loss.item()))
+    if args.lr_plateau and loss_check is not None:
+        new_loss_check = np.mean(losses[-100:])
+        # If avg loss increased or plateaued then reduce LR
+        if new_loss_check >= loss_check:
+            for g in torch.optim.param_groups:
+                g['lr'] *= 0.5
+        loss_check = new_loss_check
+
+    elif args.lr_plateau and loss_check is None and len(losses) >= 100:
+        loss_check = np.mean(losses[-100:])
+
+    return loss_check
