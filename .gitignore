@@ -1,3 +1,5 @@
+logs/
+data/
 **/checkpoint/**
 /playground/**
 .vscode
