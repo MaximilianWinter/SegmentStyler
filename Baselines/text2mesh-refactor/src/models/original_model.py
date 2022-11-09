@@ -86,4 +86,4 @@ class Text2MeshOriginal(nn.Module):
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(rendered_images, geo_renders)
 
-        return encoded_renders_dict
+        return encoded_renders_dict, rendered_images
