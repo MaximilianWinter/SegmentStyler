@@ -5,7 +5,7 @@ import kaolin as kal
 import torch
 # from helpers import get_res, get_background
 from neural_style_field import NeuralStyleField
-from utils import device 
+from utils import device
 from mesh import Mesh
 from Normalization import MeshNormalizer
 import numpy as np
@@ -18,31 +18,8 @@ import argparse
 from pathlib import Path
 from torchvision import transforms
 
+
 def run_branched(args):
-
-    # Constrain all sources of randomness
-
-    if not args.no_prompt:
-        if args.prompt:
-            prompt = ' '.join(args.prompt)
-            prompt_token = clip.tokenize([prompt]).to(device)
-            encoded_text = clip_model.encode_text(prompt_token)
-
-            # Save prompt
-            with open(os.path.join(dir, prompt), "w") as f:
-                f.write("")
-
-            # Same with normprompt
-            norm_encoded = encoded_text
-            
-    if args.normprompt is not None:
-        prompt = ' '.join(args.normprompt)
-        prompt_token = clip.tokenize([prompt]).to(device)
-        norm_encoded = clip_model.encode_text(prompt_token)
-
-        # Save prompt
-        with open(os.path.join(dir, f"NORM {prompt}"), "w") as f:
-            f.write("")
 
     if args.image:
         img = Image.open(args.image)
@@ -55,11 +32,12 @@ def run_branched(args):
     vertices = copy.deepcopy(mesh.vertices)
     network_input = copy.deepcopy(vertices)
     if args.symmetry == True:
-        network_input[:,2] = torch.abs(network_input[:,2])
+        network_input[:, 2] = torch.abs(network_input[:, 2])
 
     if args.standardize == True:
         # Each channel into z-score
-        network_input = (network_input - torch.mean(network_input, dim=0))/torch.std(network_input, dim=0)
+        network_input = (network_input - torch.mean(network_input,
+                         dim=0))/torch.std(network_input, dim=0)
 
     for i in tqdm(range(args.n_iter)):
         optim.zero_grad()
@@ -75,12 +53,13 @@ def run_branched(args):
                                                                 return_views=True,
                                                                 background=background)
         # rendered_images = torch.stack([preprocess(transforms.ToPILImage()(image)) for image in rendered_images])
-    
+
         if n_augs == 0:
             clip_image = clip_transform(rendered_images)
             encoded_renders = clip_model.encode_image(clip_image)
             if not args.no_prompt:
-                loss = torch.mean(torch.cosine_similarity(encoded_renders, encoded_text))
+                loss = torch.mean(torch.cosine_similarity(
+                    encoded_renders, encoded_text))
 
         # Check augmentation steps
         if args.cropsteps != 0 and cropupdate != 0 and i != 0 and i % args.cropsteps == 0:
@@ -88,7 +67,8 @@ def run_branched(args):
             # print(curcrop)
             normaugment_transform = transforms.Compose([
                 transforms.RandomResizedCrop(res, scale=(curcrop, curcrop)),
-                transforms.RandomPerspective(fill=1, p=0.8, distortion_scale=0.5),
+                transforms.RandomPerspective(
+                    fill=1, p=0.8, distortion_scale=0.5),
                 clip_normalizer
             ])
 
@@ -107,7 +87,8 @@ def run_branched(args):
                                 loss -= torch.cosine_similarity(torch.mean(encoded_renders, dim=0, keepdim=True),
                                                                 encoded_text)
                         else:
-                            loss -= torch.mean(torch.cosine_similarity(encoded_renders, encoded_text))
+                            loss -= torch.mean(torch.cosine_similarity(
+                                encoded_renders, encoded_text))
                 if args.image:
                     if encoded_image.shape[0] > 1:
                         loss -= torch.cosine_similarity(torch.mean(encoded_renders, dim=0),
@@ -139,11 +120,13 @@ def run_branched(args):
                         if args.clipavg == "view":
                             if norm_encoded.shape[0] > 1:
                                 normloss -= normweight * torch.cosine_similarity(torch.mean(encoded_renders, dim=0),
-                                                                                 torch.mean(norm_encoded, dim=0),
+                                                                                 torch.mean(
+                                                                                     norm_encoded, dim=0),
                                                                                  dim=0)
                             else:
                                 normloss -= normweight * torch.cosine_similarity(
-                                    torch.mean(encoded_renders, dim=0, keepdim=True),
+                                    torch.mean(encoded_renders,
+                                               dim=0, keepdim=True),
                                     norm_encoded)
                         else:
                             normloss -= normweight * torch.mean(
@@ -220,14 +203,16 @@ def run_branched(args):
                 normweight *= args.cropdecay
 
         if i % 100 == 0:
-            report_process(args, dir, i, loss, loss_check, losses, rendered_images)
+            report_process(args, dir, i, loss, loss_check,
+                           losses, rendered_images)
 
     export_final_results(args, dir, losses, mesh, mlp, network_input, vertices)
 
 
 def report_process(args, dir, i, loss, loss_check, losses, rendered_images):
     print('iter: {} loss: {}'.format(i, loss.item()))
-    torchvision.utils.save_image(rendered_images, os.path.join(dir, 'iter_{}.jpg'.format(i)))
+    torchvision.utils.save_image(
+        rendered_images, os.path.join(dir, 'iter_{}.jpg'.format(i)))
     if args.lr_plateau and loss_check is not None:
         new_loss_check = np.mean(losses[-100:])
         # If avg loss increased or plateaued then reduce LR
@@ -249,13 +234,16 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):
         torch.save(pred_rgb, os.path.join(dir, f"colors_final.pt"))
         torch.save(pred_normal, os.path.join(dir, f"normals_final.pt"))
 
-        base_color = torch.full(size=(mesh.vertices.shape[0], 3), fill_value=0.5)
+        base_color = torch.full(
+            size=(mesh.vertices.shape[0], 3), fill_value=0.5)
         final_color = torch.clamp(pred_rgb + base_color, 0, 1)
 
-        mesh.vertices = vertices.detach().cpu() + mesh.vertex_normals.detach().cpu() * pred_normal
+        mesh.vertices = vertices.detach().cpu(
+        ) + mesh.vertex_normals.detach().cpu() * pred_normal
 
         objbase, extension = os.path.splitext(os.path.basename(args.obj_path))
-        mesh.export(os.path.join(dir, f"{objbase}_final.obj"), color=final_color)
+        mesh.export(os.path.join(
+            dir, f"{objbase}_final.obj"), color=final_color)
 
         # Run renders
         if args.save_render:
@@ -266,16 +254,19 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):
 
 
 def save_rendered_results(args, dir, final_color, mesh):
-    default_color = torch.full(size=(mesh.vertices.shape[0], 3), fill_value=0.5, device=device)
+    default_color = torch.full(
+        size=(mesh.vertices.shape[0], 3), fill_value=0.5, device=device)
     mesh.face_attributes = kaolin.ops.mesh.index_vertices_by_faces(default_color.unsqueeze(0),
                                                                    mesh.faces.to(device))
     kal_render = Renderer(
-        camera=kal.render.camera.generate_perspective_projection(np.pi / 4, 1280 / 720).to(device),
+        camera=kal.render.camera.generate_perspective_projection(
+            np.pi / 4, 1280 / 720).to(device),
         dim=(1280, 720))
     MeshNormalizer(mesh)()
     img, mask = kal_render.render_single_view(mesh, args.frontview_center[1], args.frontview_center[0],
                                               radius=2.5,
-                                              background=torch.tensor([1, 1, 1]).to(device).float(),
+                                              background=torch.tensor(
+                                                  [1, 1, 1]).to(device).float(),
                                               return_mask=True)
     img = img[0].cpu()
     mask = mask[0].cpu()
@@ -291,7 +282,8 @@ def save_rendered_results(args, dir, final_color, mesh):
                                                                    mesh.faces.to(device))
     img, mask = kal_render.render_single_view(mesh, args.frontview_center[1], args.frontview_center[0],
                                               radius=2.5,
-                                              background=torch.tensor([1, 1, 1]).to(device).float(),
+                                              background=torch.tensor(
+                                                  [1, 1, 1]).to(device).float(),
                                               return_mask=True)
     img = img[0].cpu()
     mask = mask[0].cpu()
@@ -334,7 +326,8 @@ if __name__ == '__main__':
     parser.add_argument('--decay', type=float, default=0)
     parser.add_argument('--lr_decay', type=float, default=1)
     parser.add_argument('--lr_plateau', action='store_true')
-    parser.add_argument('--no_pe', dest='pe', default=True, action='store_false')
+    parser.add_argument('--no_pe', dest='pe',
+                        default=True, action='store_false')
     parser.add_argument('--decay_step', type=int, default=100)
     parser.add_argument('--n_views', type=int, default=5)
     parser.add_argument('--n_augs', type=int, default=0)
@@ -352,9 +345,10 @@ if __name__ == '__main__':
     parser.add_argument('--no_prompt', default=False, action='store_true')
     parser.add_argument('--exclude', type=int, default=0)
 
-    # Training settings 
+    # Training settings
     parser.add_argument('--frontview_std', type=float, default=8)
-    parser.add_argument('--frontview_center', nargs=2, type=float, default=[0., 0.])
+    parser.add_argument('--frontview_center', nargs=2,
+                        type=float, default=[0., 0.])
     parser.add_argument('--clipavg', type=str, default=None)
     parser.add_argument('--geoloss', action="store_true")
     parser.add_argument('--samplebary', action="store_true")
@@ -380,10 +374,10 @@ if __name__ == '__main__':
     parser.add_argument('--only_z', default=False, action='store_true')
     parser.add_argument('--standardize', default=False, action='store_true')
 
-    # CLIP model settings 
+    # CLIP model settings
     parser.add_argument('--clipmodel', type=str, default='ViT-B/32')
     parser.add_argument('--jit', action="store_true")
-    
+
     args = parser.parse_args()
 
     run_branched(args)
