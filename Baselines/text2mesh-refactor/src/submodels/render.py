@@ -1,10 +1,11 @@
-from mesh import Mesh
 import kaolin as kal
-from utils import get_camera_from_view2
 import matplotlib.pyplot as plt
-from utils import device
 import torch
 import numpy as np
+
+from data.mesh import Mesh
+from utils.render import get_camera_from_view2
+from utils.utils import device
 
 
 class Renderer():

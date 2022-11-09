@@ -1,5 +1,4 @@
 import pymeshlab 
-import os 
 import argparse
 
 parser = argparse.ArgumentParser()

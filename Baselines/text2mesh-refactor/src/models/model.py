@@ -1,19 +1,24 @@
-from neural_style_field import NeuralStyleField
+
 import clip
-from mesh import Mesh
-from Normalization import MeshNormalizer
-import os
-from render import Renderer
+
+import torch
 from torch import optim, nn, utils, Tensor
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 import pytorch_lightning as pl
-from utils import device
-import torch
+
 import numpy as np
 import random
-from pathlib import Path
+
 from PIL import Image
+import os
+from pathlib import Path
+
+from data.mesh import Mesh
+from submodels.render import Renderer
+from submodels.neural_style_field import NeuralStyleField
+from utils.Normalization import MeshNormalizer
+from utils.utils import device
 
 
 class Text2Mesh():

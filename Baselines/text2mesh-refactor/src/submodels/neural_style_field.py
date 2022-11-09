@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim
 import os
-from utils import FourierFeatureTransform
-from utils import device
+from utils.encoding import FourierFeatureTransform
+from utils.utils import device
 
 
 class ProgressiveEncoding(nn.Module):
