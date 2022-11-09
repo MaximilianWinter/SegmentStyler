@@ -1,58 +1,12 @@
 import torch
 import kaolin as kal
-import clip
 import numpy as np
-from torchvision import transforms
-from pathlib import Path
 
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
 else:
     device = torch.device("cpu")
-
-
-def get_camera_from_view(elev, azim, r=3.0):
-    x = r * torch.cos(azim) * torch.sin(elev)
-    y = r * torch.sin(azim) * torch.sin(elev)
-    z = r * torch.cos(elev)
-    # print(elev,azim,x,y,z)
-
-    pos = torch.tensor([x, y, z]).unsqueeze(0)
-    look_at = -pos
-    direction = torch.tensor([0.0, 1.0, 0.0]).unsqueeze(0)
-
-    camera_proj = kal.render.camera.generate_transformation_matrix(pos, look_at, direction)
-    return camera_proj
-
-
-def get_camera_from_view2(elev, azim, r=3.0):
-    x = r * torch.cos(elev) * torch.cos(azim)
-    y = r * torch.sin(elev)
-    z = r * torch.cos(elev) * torch.sin(azim)
-    # print(elev,azim,x,y,z)
-
-    pos = torch.tensor([x, y, z]).unsqueeze(0)
-    look_at = -pos
-    direction = torch.tensor([0.0, 1.0, 0.0]).unsqueeze(0)
-
-    camera_proj = kal.render.camera.generate_transformation_matrix(pos, look_at, direction)
-    return camera_proj
-
-
-def get_homogenous_coordinates(V):
-    N, D = V.shape
-    bottom = torch.ones(N, device=device).unsqueeze(1)
-    return torch.cat([V, bottom], dim=1)
-
-
-def apply_affine(verts, A):
-    verts = verts.to(device)
-    verts = get_homogenous_coordinates(verts)
-    A = torch.cat([A, torch.tensor([0.0, 0.0, 0.0, 1.0], device=device).unsqueeze(0)], dim=0)
-    transformed_verts = A @ verts.T
-    transformed_verts = transformed_verts[:-1]
-    return transformed_verts.T
 
 def standardize_mesh(mesh):
     verts = mesh.vertices
@@ -266,24 +220,6 @@ def get_texture_visual(res, nt, mesh):
 
     return image
 
-
-# Get rotation matrix about vector through origin
-def getRotMat(axis, theta):
-    """
-    axis: np.array, normalized vector
-    theta: radians
-    """
-    import math
-
-    axis = axis / np.linalg.norm(axis)
-    cprod = np.array([[0, -axis[2], axis[1]],
-                      [axis[2], 0, -axis[0]],
-                      [-axis[1], axis[0], 0]])
-    rot = math.cos(theta) * np.identity(3) + math.sin(theta) * cprod + \
-          (1 - math.cos(theta)) * np.outer(axis, axis)
-    return rot
-
-
 # Map vertices and subset of faces to 0-indexed vertices, keeping only relevant vertices
 def trimMesh(vertices, faces):
     unique_v = np.sort(np.unique(faces.flatten()))
@@ -293,127 +229,3 @@ def trimMesh(vertices, faces):
     new_v = vertices[unique_v]
 
     return new_v, new_faces
-
-
-# ================== VISUALIZATION =======================
-# Back out camera parameters from view transform matrix
-def extract_from_gl_viewmat(gl_mat):
-    gl_mat = gl_mat.reshape(4, 4)
-    s = gl_mat[0, :3]
-    u = gl_mat[1, :3]
-    f = -1 * gl_mat[2, :3]
-    coord = gl_mat[:3, 3]  # first 3 entries of the last column
-    camera_location = np.array([-s, -u, f]).T @ coord
-    target = camera_location + f * 10  # any scale
-    return camera_location, target
-
-
-def psScreenshot(vertices, faces, axis, angles, save_path, name="mesh", frame_folder="frames", scalars=None,
-                 colors=None,
-                 defined_on="faces", highlight_faces=None, highlight_color=[1, 0, 0], highlight_radius=None,
-                 cmap=None, sminmax=None, cpos=None, clook=None, save_video=False, save_base=False,
-                 ground_plane="tile_reflection", debug=False, edge_color=[0, 0, 0], edge_width=1, material=None):
-    import polyscope as ps
-
-    ps.init()
-    # Set camera to look at same fixed position in centroid of original mesh
-    # center = np.mean(vertices, axis = 0)
-    # pos = center + np.array([0, 0, 3])
-    # ps.look_at(pos, center)
-    ps.set_ground_plane_mode(ground_plane)
-
-    frame_path = f"{save_path}/{frame_folder}"
-    if save_base == True:
-        ps_mesh = ps.register_surface_mesh("mesh", vertices, faces, enabled=True,
-                                           edge_color=edge_color, edge_width=edge_width, material=material)
-        ps.screenshot(f"{frame_path}/{name}.png")
-        ps.remove_all_structures()
-    Path(frame_path).mkdir(parents=True, exist_ok=True)
-    # Convert 2D to 3D by appending Z-axis
-    if vertices.shape[1] == 2:
-        vertices = np.concatenate((vertices, np.zeros((len(vertices), 1))), axis=1)
-
-    for i in range(len(angles)):
-        rot = getRotMat(axis, angles[i])
-        rot_verts = np.transpose(rot @ np.transpose(vertices))
-
-        ps_mesh = ps.register_surface_mesh("mesh", rot_verts, faces, enabled=True,
-                                           edge_color=edge_color, edge_width=edge_width, material=material)
-        if scalars is not None:
-            ps_mesh.add_scalar_quantity(f"scalar", scalars, defined_on=defined_on,
-                                        cmap=cmap, enabled=True, vminmax=sminmax)
-        if colors is not None:
-            ps_mesh.add_color_quantity(f"color", colors, defined_on=defined_on,
-                                       enabled=True)
-        if highlight_faces is not None:
-            # Create curve to highlight faces
-            curve_v, new_f = trimMesh(rot_verts, faces[highlight_faces, :])
-            curve_edges = []
-            for face in new_f:
-                curve_edges.extend(
-                    [[face[0], face[1]], [face[1], face[2]], [face[2], face[0]]])
-            curve_edges = np.array(curve_edges)
-            ps_curve = ps.register_curve_network("curve", curve_v, curve_edges, color=highlight_color,
-                                                 radius=highlight_radius)
-
-        if cpos is None or clook is None:
-            ps.reset_camera_to_home_view()
-        else:
-            ps.look_at(cpos, clook)
-
-        if debug == True:
-            ps.show()
-        ps.screenshot(f"{frame_path}/{name}_{i}.png")
-        ps.remove_all_structures()
-    if save_video == True:
-        import glob
-        from PIL import Image
-        fp_in = f"{frame_path}/{name}_*.png"
-        fp_out = f"{save_path}/{name}.gif"
-        img, *imgs = [Image.open(f) for f in sorted(glob.glob(fp_in))]
-        img.save(fp=fp_out, format='GIF', append_images=imgs,
-                 save_all=True, duration=200, loop=0)
-
-
-# ================== POSITIONAL ENCODERS =============================
-class FourierFeatureTransform(torch.nn.Module):
-    """
-    An implementation of Gaussian Fourier feature mapping.
-    "Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains":
-       https://arxiv.org/abs/2006.10739
-       https://people.eecs.berkeley.edu/~bmild/fourfeat/index.html
-    Given an input of size [batches, num_input_channels, width, height],
-     returns a tensor of size [batches, mapping_size*2, width, height].
-    """
-
-    def __init__(self, num_input_channels, mapping_size=256, scale=10, exclude=0):
-        super().__init__()
-
-        self._num_input_channels = num_input_channels
-        self._mapping_size = mapping_size
-        self.exclude = exclude
-        B = torch.randn((num_input_channels, mapping_size)) * scale
-        B_sort = sorted(B, key=lambda x: torch.norm(x, p=2))
-        self._B = torch.stack(B_sort)  # for sape
-
-    def forward(self, x):
-        # assert x.dim() == 4, 'Expected 4D input (got {}D input)'.format(x.dim())
-
-        batches, channels = x.shape
-
-        assert channels == self._num_input_channels, \
-            "Expected input to have {} channels (got {} channels)".format(self._num_input_channels, channels)
-
-        # Make shape compatible for matmul with _B.
-        # From [B, C, W, H] to [(B*W*H), C].
-        # x = x.permute(0, 2, 3, 1).reshape(batches * width * height, channels)
-
-        res = x @ self._B.to(x.device)
-
-        # From [(B*W*H), C] to [B, W, H, C]
-        # x = x.view(batches, width, height, self._mapping_size)
-        # From [B, W, H, C] to [B, C, W, H]
-        # x = x.permute(0, 3, 1, 2)
-
-        res = 2 * np.pi * res
-        return torch.cat([x, torch.sin(res), torch.cos(res)], dim=1)

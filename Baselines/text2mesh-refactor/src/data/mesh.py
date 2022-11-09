@@ -1,7 +1,7 @@
 import kaolin as kal
 import torch
-import utils
-from utils import device
+from utils.utils import device
+from utils.mesh import get_texture_map_from_color, get_face_attributes_from_color, standardize_mesh, normalize_mesh, add_vertices
 import copy
 import numpy as np
 import PIL
@@ -41,12 +41,12 @@ class Mesh():
 
     def standardize_mesh(self,inplace=False):
         mesh = self if inplace else copy.deepcopy(self)
-        return utils.standardize_mesh(mesh)
+        return standardize_mesh(mesh)
 
     def normalize_mesh(self,inplace=False):
 
         mesh = self if inplace else copy.deepcopy(self)
-        return utils.normalize_mesh(mesh)
+        return normalize_mesh(mesh)
 
     def update_vertex(self,verts,inplace=False):
 
@@ -55,8 +55,8 @@ class Mesh():
         return mesh
 
     def set_mesh_color(self,color):
-        self.texture_map = utils.get_texture_map_from_color(self,color)
-        self.face_attributes = utils.get_face_attributes_from_color(self,color)
+        self.texture_map = get_texture_map_from_color(self,color)
+        self.face_attributes = get_face_attributes_from_color(self,color)
 
     def set_image_texture(self,texture_map,inplace=True):
 
@@ -74,7 +74,7 @@ class Mesh():
     def divide(self,inplace=True):
 
         mesh = self if inplace else copy.deepcopy(self)
-        new_vertices, new_faces, new_face_uvs = utils.add_vertices(mesh)
+        new_vertices, new_faces, new_face_uvs = add_vertices(mesh)
         mesh.vertices = new_vertices
         mesh.faces = new_faces
         mesh.face_uvs = new_face_uvs
