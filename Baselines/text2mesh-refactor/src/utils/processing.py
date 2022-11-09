@@ -21,8 +21,10 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 def train(args, config):
+    log_path = Path(config["log_dir"]).joinpath(args.output_dir)
+
     # CREATE OUTPUT DIR
-    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    log_path.mkdir(parents=True, exist_ok=True)
 
     # SET SEED
     set_seed(args.seed)
@@ -64,10 +66,10 @@ def train(args, config):
     losses = []
     loss_check = None
     for i in tqdm(range(args.n_iter)):
-        loss = trainer.training_step(i, args.clipavg, save_dir=args.output_dir)
+        loss = trainer.training_step(i, args.clipavg, save_dir=log_path)
         losses.append(loss)
 
         if i % 100 == 0:
             loss_check = report_process(args, i, loss, loss_check, losses)
 
-    export_final_results(args, args.output_dir, losses, base_mesh, text2mesh_model.mlp, network_input, vertices)
+    export_final_results(args, log_path, losses, base_mesh, text2mesh_model.mlp, network_input, vertices)

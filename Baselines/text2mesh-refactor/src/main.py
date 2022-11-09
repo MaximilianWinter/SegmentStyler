@@ -1,4 +1,5 @@
 import argparse
+import datetime
 
 from utils.processing import train
 from models.original_model import Text2MeshOriginal
@@ -80,7 +81,7 @@ def get_parser():
     parser.add_argument('--jit', action="store_true")
 
     return parser
-    
+
 
 if __name__ == "__main__":
     parser = get_parser()
@@ -88,7 +89,8 @@ if __name__ == "__main__":
 
     config = {
         "model": Text2MeshOriginal,
-        "loss": default_loss
+        "loss": default_loss,
+        "log_dir": f"logs/{str(datetime.date.today())}"
     }
 
     train(args, config)
