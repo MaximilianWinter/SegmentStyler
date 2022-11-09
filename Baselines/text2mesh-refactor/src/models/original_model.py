@@ -33,10 +33,12 @@ class Text2MeshOriginal(nn.Module):
         self.mlp = NeuralStyleField(self.args.sigma, self.args.depth, self.args.width, 'gaussian', self.args.colordepth, self.args.normdepth,
                                     self.args.normratio, self.args.clamp, self.args.normclamp, niter=self.args.n_iter,
                                     progressive_encoding=self.args.pe, input_dim=self.input_dim, exclude=self.args.exclude).to(device)
+        self.mlp.reset_weights()
 
         #### OTHER ####
         # Mesh
         self.base_mesh = base_mesh
+        self.base_mesh_vertices = copy.deepcopy(base_mesh.vertices)
 
         # Prior color
         self.prior_color = torch.full(
@@ -57,35 +59,34 @@ class Text2MeshOriginal(nn.Module):
         pred_rgb, pred_normal = self.mlp(vertices)
 
         # Get stylized mesh
-        base_mesh_copy = copy.deepcopy(self.base_mesh)
-        base_mesh_copy.face_attributes = self.prior_color + kal.ops.mesh.index_vertices_by_faces(
+        self.base_mesh.face_attributes = self.prior_color + kal.ops.mesh.index_vertices_by_faces(
             pred_rgb.unsqueeze(0),
-            base_mesh_copy.faces)
+            self.base_mesh.faces)
 
-        base_mesh_copy.vertices = vertices + base_mesh_copy.vertex_normals * pred_normal
+        self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
 
-        MeshNormalizer(base_mesh_copy)()
+        MeshNormalizer(self.base_mesh)()
 
         # Rendering
-        rendered_images, elev, azim = self.renderer.render_front_views(base_mesh_copy, num_views=self.args.n_views,
+        rendered_images, elev, azim = self.renderer.render_front_views(self.base_mesh, num_views=self.args.n_views,
                                                                 show=self.args.show,
                                                                 center_azim=self.args.frontview_center[0],
                                                                 center_elev=self.args.frontview_center[1],
                                                                 std=self.args.frontview_std,
                                                                 return_views=True,
                                                                 background=self.background)
-
-        
-        base_mesh_copy.face_attributes = kal.ops.mesh.index_vertices_by_faces(self.default_color.unsqueeze(0),
-                                                                                   base_mesh_copy.faces)
-        
-        geo_renders, elev, azim = self.renderer.render_front_views(base_mesh_copy, num_views=self.args.n_views,
-                                                                show=self.args.show,
-                                                                center_azim=self.args.frontview_center[0],
-                                                                center_elev=self.args.frontview_center[1],
-                                                                std=self.args.frontview_std,
-                                                                return_views=True,
-                                                                background=self.background)
+        geo_renders = None
+        if self.args.geoloss:
+            self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(self.default_color.unsqueeze(0),
+                                                                                    self.base_mesh.faces)
+            
+            geo_renders, elev, azim = self.renderer.render_front_views(self.base_mesh, num_views=self.args.n_views,
+                                                                    show=self.args.show,
+                                                                    center_azim=self.args.frontview_center[0],
+                                                                    center_elev=self.args.frontview_center[1],
+                                                                    std=self.args.frontview_std,
+                                                                    return_views=True,
+                                                                    background=self.background)
 
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(rendered_images, geo_renders)
