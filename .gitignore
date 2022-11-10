@@ -1,3 +1,5 @@
+logs/
+data/
 **/checkpoint/**
 /playground/**
 .vscode
@@ -5,11 +7,12 @@
 *.pt
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
+condaenv*
 
 #PartGlot specific
-PartGlot/data/*
-PartGlot/checkpoints/*
-PartGlot/logs/*
+Baselines/PartGlot/data/*
+Baselines/PartGlot/checkpoints/*
+Baselines/PartGlot/logs/*
 *.ckpt
 
 # Byte-compiled / optimized / DLL files
