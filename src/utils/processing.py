@@ -21,10 +21,20 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 def train(args, config):
-    log_path = Path(config["log_dir"]).joinpath(args.output_dir)
+    log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
 
     # CREATE OUTPUT DIR
-    log_path.mkdir(parents=True, exist_ok=True)
+    created_directory = False
+    i = 0
+    while not created_directory:
+        log_path = log_path_base.joinpath(f"version_{i}")
+        try:
+            log_path.mkdir(parents=True, exist_ok=False)
+            created_directory = True
+            print(f"Successfully created log directory at {log_path}.")
+        except FileExistsError:
+            created_directory = False
+            i += 1
 
     # SET SEED
     set_seed(args.seed)
