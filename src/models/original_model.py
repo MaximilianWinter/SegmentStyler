@@ -57,7 +57,10 @@ class Text2MeshOriginal(nn.Module):
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
-
+        
+        if not self.args.optimize_displacement:
+            pred_normal[pred_normal != 0] = 0
+            
         # Get stylized mesh
         self.base_mesh.face_attributes = self.prior_color + kal.ops.mesh.index_vertices_by_faces(
             pred_rgb.unsqueeze(0),

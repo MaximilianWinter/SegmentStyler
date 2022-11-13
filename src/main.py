@@ -75,7 +75,8 @@ def get_parser():
     parser.add_argument('--symmetry', default=False, action='store_true')
     parser.add_argument('--only_z', default=False, action='store_true')
     parser.add_argument('--standardize', default=False, action='store_true')
-
+    parser.add_argument('--optimize_displacement',
+                        default=False, action="store_true")
     # CLIP model settings
     parser.add_argument('--clipmodel', type=str, default='ViT-B/32')
     parser.add_argument('--jit', action="store_true")
