@@ -20,8 +20,9 @@ class Trainer():
     
     def training_step(self, i, clipavg = "view", save_renders=True, save_dir="./"):
         self.optimizer.zero_grad()
-        encoded_renders_dict, rendered_images = self.model(self.network_input)
-
+        out_dict = self.model(self.network_input)
+        encoded_renders_dict = out_dict["encoded_renders"]
+        rendered_images = out_dict["rendered_images"]
         losses_dict = self.loss_func(encoded_renders_dict, self.encoded_text, clipavg)
         for loss in losses_dict.values():
             if loss != 0.0:
