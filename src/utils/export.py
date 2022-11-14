@@ -22,7 +22,10 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):
         base_color = torch.full(size=(mesh.vertices.shape[0], 3), fill_value=0.5)
         final_color = torch.clamp(pred_rgb + base_color, 0, 1)
 
-        mesh.vertices = vertices.detach().cpu() + mesh.vertex_normals.detach().cpu() * pred_normal
+        if args.optimize_displacement:
+            mesh.vertices = vertices.detach().cpu() + mesh.vertex_normals.detach().cpu() * pred_normal
+        else:
+            mesh.vertices = vertices.detach().cpu()
 
         objbase, extension = os.path.splitext(os.path.basename(args.obj_path))
         mesh.export(os.path.join(dir, f"{objbase}_final.obj"), color=final_color)
