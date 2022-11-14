@@ -94,4 +94,14 @@ class Text2MeshOriginal(nn.Module):
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(rendered_images, geo_renders)
 
-        return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images}
+        mask = torch.ones_like(pred_rgb)
+        mask[20618:29364] = 0 # those are the seat vertices
+        #mask[0:12912] = 0 # those are the back vertices
+        #mask[12912:20618] = 1 # this is one leg
+        #mask[29364:37060] = 1 # this is one leg
+        #mask[37060:44691] = 1 # this is one leg
+        #mask[44691:52299] = 1 # this is one leg
+
+        color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
+
+        return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images, "color_reg": color_reg}

@@ -24,8 +24,13 @@ class Trainer():
         encoded_renders_dict = out_dict["encoded_renders"]
         rendered_images = out_dict["rendered_images"]
         losses_dict = self.loss_func(encoded_renders_dict, self.encoded_text, clipavg)
+        not_yet = True
         for loss in losses_dict.values():
             if loss != 0.0:
+                if not_yet: # this flag makes sure that the penalizing term is added to the loss only once
+                    not_yet = False
+                    loss += 1e-2*out_dict["color_reg"]
+                    #print(1e-2*out_dict["color_reg"])
                 loss.backward(retain_graph=True)
 
         self.optimizer.step()
