@@ -10,6 +10,7 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--obj_path', type=str, default='meshes/mesh1.obj')
     parser.add_argument('--mask_path', type=str, default=None)
+    parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--prompt', nargs="+", default='a pig with pants')
     parser.add_argument('--normprompt', nargs="+", default=None)
     parser.add_argument('--promptlist', nargs="+", default=None)

@@ -1,6 +1,7 @@
 python main.py \
 --obj_path data/chair_testmesh.obj \
 --mask_path data/chair_testmesh_mask.jsonc \
+--reg_lambda 1e-2 \
 --output_dir tiger_seat \
 --prompt a chair with a tiger seat \
 --sigma 5.0 \

@@ -29,8 +29,7 @@ class Trainer():
             if loss != 0.0:
                 if not_yet: # this flag makes sure that the penalizing term is added to the loss only once
                     not_yet = False
-                    loss += 1e-2*out_dict["color_reg"]
-                    #print(1e-2*out_dict["color_reg"])
+                    loss += self.model.args.reg_lambda*out_dict["color_reg"]
                 loss.backward(retain_graph=True)
 
         self.optimizer.step()
