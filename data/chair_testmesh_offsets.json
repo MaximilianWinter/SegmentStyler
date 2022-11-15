@@ -1,13 +1,1 @@
-{
-    "vertex_index_offsets": [0,12912,20618,29364,37060,44691,52299],
-    "face_index_offsets": [0,25820,41228,58716,74104,89362,104574],
-    "mask_vertices": {
-        // Note: comment out the items to be EXCLUDED from the regularization
-        "seat": [20618,29364],
-        // "back": [0,12912],
-        // "leg_1": [12912,20618],
-        // "leg_2": [29364,37060],
-        // "leg_3": [37060,44691],
-        // "leg_4": [44691,52299]
-    }
-}
+{"vertex_index_offsets": [0, 12912, 20618, 29364, 37060, 44691, 52299], "face_index_offsets": [0, 25820, 41228, 58716, 74104, 89362, 104574]}
