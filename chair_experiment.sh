@@ -1,4 +1,4 @@
-python src/main.py \
+python main.py \
 --obj_path data/chair_testmesh.obj \
 --output_dir tiger_seat \
 --prompt a chair with a tiger seat \
