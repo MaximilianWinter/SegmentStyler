@@ -1,5 +1,6 @@
 logs/
-data/
+data/*
+!/data/chair_testmesh_mask.jsonc
 **/checkpoint/**
 /playground/**
 .vscode
@@ -11,6 +12,7 @@ wandb/*
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 condaenv*
+
 
 #PartGlot specific
 Baselines/PartGlot/data/*

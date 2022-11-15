@@ -10,7 +10,7 @@ from src.utils.Normalization import MeshNormalizer
 from src.utils.utils import device
 
 
-def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):
+def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, wandb):
     with torch.no_grad():
         pred_rgb, pred_normal = mlp(network_input)
         pred_rgb = pred_rgb.detach().cpu()
@@ -29,10 +29,11 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):
 
         objbase, extension = os.path.splitext(os.path.basename(args.obj_path))
         mesh.export(os.path.join(dir, f"{objbase}_final.obj"), color=final_color)
-
         # Run renders
         if args.save_render:
             save_rendered_results(args, dir, final_color, mesh)
+
+        wandb.log({"loss": losses[-1], "iter": args.n_iter, "output_mesh": [wandb.Object3D(os.path.join(dir, f"{objbase}_final.obj"))] })            
 
         # Save final losses
         torch.save(torch.tensor(losses), os.path.join(dir, "losses.pt"))

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import kaolin as kal
 import copy
+import jstyleson
 
 from src.submodels.clip_with_augs import CLIPWithAugs
 from src.submodels.render import Renderer
@@ -12,7 +13,7 @@ from src.utils.Normalization import MeshNormalizer
 from src.utils.utils import device
 
 
-class Text2MeshOriginal(nn.Module):
+class Text2MeshPenalizingLoss(nn.Module):
 
     def __init__(self, args, base_mesh):
         super().__init__()
@@ -98,14 +99,18 @@ class Text2MeshOriginal(nn.Module):
 
         return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images, "color_reg": color_reg}
     
-        
     def get_color_reg(self, pred_rgb):
         """
         Extracts ground truth color regularizer
-        For orginal model there is no regularization, therefore mask set to zeros.
         """        
-        mask = torch.zeros_like(pred_rgb)
-
+        with open(self.args.mask_path) as fp:
+            mesh_metadata = jstyleson.load(fp)
+            
+        mask = torch.ones_like(pred_rgb)
+        
+        for start, finish in mesh_metadata["mask_vertices"].values():
+            mask[start:finish] = 0 
+        
         color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
         
         return color_reg

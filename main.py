@@ -2,13 +2,14 @@ import argparse
 import datetime
 
 from src.utils.processing import train
-from src.models.original_model import Text2MeshOriginal
+from src.models.penalizing_loss import Text2MeshPenalizingLoss
 from src.utils.loss import default_loss
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--obj_path', type=str, default='meshes/mesh1.obj')
+    parser.add_argument('--mask_path', type=str, default=None)
     parser.add_argument('--prompt', nargs="+", default='a pig with pants')
     parser.add_argument('--normprompt', nargs="+", default=None)
     parser.add_argument('--promptlist', nargs="+", default=None)
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        "model": Text2MeshOriginal,
+        "model": Text2MeshPenalizingLoss,
         "loss": default_loss,
         "log_dir": f"logs/{str(datetime.date.today())}"
     }

@@ -18,4 +18,5 @@ dependencies:
     - git+https://github.com/NVIDIAGameWorks/kaolin@a00029e5e093b5a7fe7d3a10bf695c0f01e3bd98
     - pymeshlab==2022.2.post2
     - wandb==0.13.5
+    - jstyleson==0.0.2
     - -e .
