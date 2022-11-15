@@ -5,6 +5,9 @@ data/
 .vscode
 *.pth
 *.pt
+*.jpg
+latest-run
+wandb/*
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 condaenv*
@@ -145,3 +148,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.gitignore

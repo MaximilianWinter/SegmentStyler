@@ -1,9 +1,9 @@
 import argparse
 import datetime
 
-from utils.processing import train
-from models.original_model import Text2MeshOriginal
-from utils.loss import default_loss
+from src.utils.processing import train
+from src.models.original_model import Text2MeshOriginal
+from src.utils.loss import default_loss
 
 
 def get_parser():

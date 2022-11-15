@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim
 import os
-from utils.encoding import FourierFeatureTransform, ProgressiveEncoding
-from utils.utils import device
+from src.utils.encoding import FourierFeatureTransform, ProgressiveEncoding
+from src.utils.utils import device
 
 
 class NeuralStyleField(nn.Module):

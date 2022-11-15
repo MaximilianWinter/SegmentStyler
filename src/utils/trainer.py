@@ -2,7 +2,7 @@ import clip
 import torch
 import torchvision
 import os
-from utils.utils import device
+from src.utils.utils import device
 
 class Trainer():
     
@@ -18,7 +18,7 @@ class Trainer():
 
         self.loss_func = loss_func
     
-    def training_step(self, i, clipavg = "view", save_renders=True, save_dir="./"):
+    def training_step(self, i, wandb, clipavg = "view", save_renders=True, save_dir="./"):
         self.optimizer.zero_grad()
         out_dict = self.model(self.network_input)
         encoded_renders_dict = out_dict["encoded_renders"]
@@ -42,7 +42,9 @@ class Trainer():
             self.lr_scheduler.step()
 
         if save_renders and i % 100 == 0:
-            torchvision.utils.save_image(rendered_images, os.path.join(save_dir, 'iter_{}.jpg'.format(i)))
+            img_path = os.path.join(save_dir, 'iter_{}.jpg'.format(i))
+            torchvision.utils.save_image(rendered_images, img_path)
+            wandb.log({"loss": loss, "iter": i, 'images': wandb.Image(img_path)})            
 
         with torch.no_grad():
             for loss in losses_dict.values():

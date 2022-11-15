@@ -4,12 +4,12 @@ import torch.nn.functional as F
 import kaolin as kal
 import copy
 
-from submodels.clip_with_augs import CLIPWithAugs
-from submodels.render import Renderer
-from submodels.neural_style_field import NeuralStyleField
-from utils.render import get_render_resolution
-from utils.Normalization import MeshNormalizer
-from utils.utils import device
+from src.submodels.clip_with_augs import CLIPWithAugs
+from src.submodels.render import Renderer
+from src.submodels.neural_style_field import NeuralStyleField
+from src.utils.render import get_render_resolution
+from src.utils.Normalization import MeshNormalizer
+from src.utils.utils import device
 
 
 class Text2MeshOriginal(nn.Module):

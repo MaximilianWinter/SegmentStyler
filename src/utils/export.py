@@ -5,9 +5,9 @@ from torchvision import transforms
 import os
 from pathlib import Path
 
-from submodels.render import Renderer
-from utils.Normalization import MeshNormalizer
-from utils.utils import device
+from src.submodels.render import Renderer
+from src.utils.Normalization import MeshNormalizer
+from src.utils.utils import device
 
 
 def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices):

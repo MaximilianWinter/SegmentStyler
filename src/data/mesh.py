@@ -1,7 +1,7 @@
 import kaolin as kal
 import torch
-from utils.utils import device
-from utils.mesh import get_texture_map_from_color, get_face_attributes_from_color, standardize_mesh, normalize_mesh, add_vertices
+from src.utils.utils import device
+from src.utils.mesh import get_texture_map_from_color, get_face_attributes_from_color, standardize_mesh, normalize_mesh, add_vertices
 import copy
 import numpy as np
 import PIL

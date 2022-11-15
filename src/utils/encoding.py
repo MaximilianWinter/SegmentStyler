@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from utils.utils import device
+from src.utils.utils import device
 
 class ProgressiveEncoding(nn.Module):
     def __init__(self, mapping_size, T, d=3, apply=True):

@@ -4,12 +4,13 @@ import torch
 from pathlib import Path
 import numpy as np
 import random
+import wandb
 
-from data.mesh import Mesh
-from utils.Normalization import MeshNormalizer
-from utils.trainer import Trainer
-from utils.export import export_final_results
-from utils.utils import report_process
+from src.data.mesh import Mesh
+from src.utils.Normalization import MeshNormalizer
+from src.utils.trainer import Trainer
+from src.utils.export import export_final_results
+from src.utils.utils import report_process
 
 def set_seed(seed):
     torch.manual_seed(seed)
@@ -20,7 +21,11 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-def train(args, config):
+def train(args, config, wand_proj='dl3d'):
+    
+    wandb.init(project=wand_proj,
+               config=args.__dict__)
+    
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
 
     # CREATE OUTPUT DIR
@@ -76,7 +81,7 @@ def train(args, config):
     losses = []
     loss_check = None
     for i in tqdm(range(args.n_iter)):
-        loss = trainer.training_step(i, args.clipavg, save_dir=log_path)
+        loss = trainer.training_step(i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path)
         losses.append(loss)
 
         if i % 100 == 0:
