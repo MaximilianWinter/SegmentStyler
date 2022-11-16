@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import kaolin as kal
+import jstyleson
 import copy
 
 from src.submodels.clip_with_augs import CLIPWithAugs
@@ -110,3 +111,13 @@ class Text2MeshOriginal(nn.Module):
         
         return color_reg
         
+    def load_mask(self, pred_rgb):
+        with open(self.args.mask_path) as fp:
+            mesh_metadata = jstyleson.load(fp)
+
+        mask = torch.ones_like(pred_rgb)
+
+        for start, finish in mesh_metadata["mask_vertices"].values():
+            mask[start:finish] = 0 
+            
+        return mask
