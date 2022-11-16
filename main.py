@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     config = {
         "model": locals()[args.model_name],
-        "loss": default_loss,
+        "loss": locals()[args.loss_name],
         "log_dir": f"logs/{str(datetime.date.today())}"
     }
 
