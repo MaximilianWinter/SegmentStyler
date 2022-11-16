@@ -2,7 +2,7 @@ import argparse
 import datetime
 
 from src.utils.processing import train
-from src.models.penalizing_loss import Text2MeshPenalizingLoss
+from src.models import *
 from src.utils.loss import default_loss
 
 
@@ -74,6 +74,7 @@ def get_parser():
     parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
+    parser.add_argument('--model_name', type=str, default="Text2MeshOriginal")
 
     return parser
 
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = {
-        "model": Text2MeshPenalizingLoss,
+        "model": locals()[args.model_name],
         "loss": default_loss,
         "log_dir": f"logs/{str(datetime.date.today())}"
     }
