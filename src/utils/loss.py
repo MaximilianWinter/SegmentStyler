@@ -30,7 +30,7 @@ def penalizing_loss(out_dict, encoded_text, args, clipavg=None):
     losses_dict = default_loss(out_dict, encoded_text, args, clipavg)
     not_yet = True
     for key, loss in losses_dict.items():
-        if loss != 0.0:
+        if isinstance(loss, torch.Tensor):
             if not_yet: # this flag makes sure that the penalizing term is added to the loss only once
                 not_yet = False
                 losses_dict[key] = loss + args.reg_lambda*out_dict["color_reg"]

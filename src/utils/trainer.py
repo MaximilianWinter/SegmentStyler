@@ -24,7 +24,7 @@ class Trainer():
         losses_dict = self.loss_func(out_dict, self.encoded_text, self.model.args, clipavg)
 
         for loss in losses_dict.values():
-            if loss != 0.0:
+            if isinstance(loss, torch.Tensor):
                 loss.backward(retain_graph=True)
 
         self.optimizer.step()
@@ -38,11 +38,14 @@ class Trainer():
         if save_renders and i % 100 == 0:
             img_path = os.path.join(save_dir, 'iter_{}.jpg'.format(i))
             torchvision.utils.save_image(out_dict["rendered_images"], img_path)
-            wandb.log({"loss": loss, "iter": i, 'images': wandb.Image(img_path)})            
+            wandb.log({"iter": i, 'images': wandb.Image(img_path)})            
 
         with torch.no_grad():
-            for loss in losses_dict.values():
-                if loss != 0.0:
-                    return loss.item()
+            return_dict = {}
+            for key, loss in losses_dict.items():
+                if isinstance(loss, torch.Tensor):
+                    wandb.log({f"loss_{key}": loss.item()})
+                    return_dict[key] = loss.item()
             
-            return None
+            return return_dict
+            
