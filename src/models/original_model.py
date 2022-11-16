@@ -102,10 +102,9 @@ class Text2MeshOriginal(nn.Module):
         
     def get_color_reg(self, pred_rgb):
         """
-        Extracts ground truth color regularizer
-        For orginal model there is no regularization, therefore mask set to zeros.
+        Extracts ground truth color regularizer.
         """        
-        mask = torch.zeros_like(pred_rgb)
+        mask = self.load_mask(pred_rgb)
 
         color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
         

@@ -3,7 +3,7 @@ import datetime
 
 from src.utils.processing import train
 from src.models import *
-from src.utils.loss import default_loss
+from src.utils.loss import *
 
 
 def get_parser():
@@ -75,6 +75,7 @@ def get_parser():
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
     parser.add_argument('--model_name', type=str, default="Text2MeshOriginal")
+    parser.add_argument('--loss_name', type=str, default="default_loss")
 
     return parser
 
