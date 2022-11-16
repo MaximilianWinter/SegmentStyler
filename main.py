@@ -76,6 +76,7 @@ def get_parser():
                         default=False, action="store_true")
     parser.add_argument('--model_name', type=str, default="Text2MeshOriginal")
     parser.add_argument('--loss_name', type=str, default="default_loss")
+    parser.add_argument('--no_mesh_log', action="store_true", default=False)
 
     return parser
 
