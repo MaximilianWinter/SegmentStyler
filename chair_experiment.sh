@@ -25,5 +25,4 @@ python main.py \
 --save_render \
 --n_iter 500 \
 --learning_rate 0.0005 \
---normal_learning_rate 0.0005 \
 --frontview_center 1.96349 0.6283
