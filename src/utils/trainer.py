@@ -38,13 +38,13 @@ class Trainer():
         if save_renders and i % 100 == 0:
             img_path = os.path.join(save_dir, 'iter_{}.jpg'.format(i))
             torchvision.utils.save_image(out_dict["rendered_images"], img_path)
-            wandb.log({"iter": i, 'images': wandb.Image(img_path)})            
+            wandb.log({'images': wandb.Image(img_path)}, step=i)            
 
         with torch.no_grad():
             return_dict = {}
             for key, loss in losses_dict.items():
                 if isinstance(loss, torch.Tensor):
-                    wandb.log({f"loss_{key}": loss.item()})
+                    wandb.log({f"loss_{key}": loss.item()}, step=i)
                     return_dict[key] = loss.item()
             
             return return_dict
