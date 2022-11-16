@@ -31,7 +31,7 @@ class Text2MeshOriginal(nn.Module):
         self.input_dim = 6 if self.args.input_normals else 3
         if self.args.only_z:
             self.input_dim = 1
-        self.mlp = NeuralStyleField(self.args.sigma, self.args.depth, self.args.width, 'gaussian', self.args.colordepth, self.args.normdepth,
+        self.mlp = NeuralStyleField(self.args.sigma, self.args.depth, self.args.width, self.args.encoding, self.args.colordepth, self.args.normdepth,
                                     self.args.normratio, self.args.clamp, self.args.normclamp, niter=self.args.n_iter,
                                     progressive_encoding=self.args.pe, input_dim=self.input_dim, exclude=self.args.exclude).to(device)
         self.mlp.reset_weights()
