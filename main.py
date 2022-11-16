@@ -70,7 +70,7 @@ def get_parser():
     parser.add_argument('--geoloss', action="store_true")
 
     # Custom
-    parser.add_argument('--mask_path', type=str, default=None)
+    parser.add_argument('--mask_path', type=str, default="data/chair_testmesh_mask.jsonc")
     parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
