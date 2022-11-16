@@ -21,10 +21,11 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-def train(args, config, wand_proj='dl3d'):
+def train(args, config, wand_proj='dl3d', team='meshers'):
     
     wandb.init(project=wand_proj,
-               config=args.__dict__)
+               config=args.__dict__,
+               entity=team)
     
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
 
