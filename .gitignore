@@ -1,13 +1,18 @@
 logs/
-data/
+data/*
+!/data/chair_testmesh_mask.jsonc
 **/checkpoint/**
 /playground/**
 .vscode
 *.pth
 *.pt
+*.jpg
+latest-run
+wandb/*
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 condaenv*
+
 
 #PartGlot specific
 Baselines/PartGlot/data/*
@@ -145,3 +150,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.gitignore

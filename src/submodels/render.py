@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
-from data.mesh import Mesh
-from utils.render import get_camera_from_view2
-from utils.utils import device
+from src.data.mesh import Mesh
+from src.utils.render import get_camera_from_view2
+from src.utils.utils import device
 
 
 class Renderer():

@@ -1,8 +1,8 @@
 import clip
 from torchvision import transforms
 
-from utils.render import get_render_resolution
-from utils.utils import device
+from src.utils.render import get_render_resolution
+from src.utils.utils import device
 
 
 class CLIPWithAugs():

@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
-from utils.utils import getRotMat
-from utils.mesh import trimMesh
+from src.utils.utils import getRotMat
+from src.utils.mesh import trimMesh
 
 
 # ================== VISUALIZATION =======================

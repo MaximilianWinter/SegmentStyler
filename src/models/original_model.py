@@ -2,14 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import kaolin as kal
+import jstyleson
 import copy
 
-from submodels.clip_with_augs import CLIPWithAugs
-from submodels.render import Renderer
-from submodels.neural_style_field import NeuralStyleField
-from utils.render import get_render_resolution
-from utils.Normalization import MeshNormalizer
-from utils.utils import device
+from src.submodels.clip_with_augs import CLIPWithAugs
+from src.submodels.render import Renderer
+from src.submodels.neural_style_field import NeuralStyleField
+from src.utils.render import get_render_resolution
+from src.utils.Normalization import MeshNormalizer
+from src.utils.utils import device
 
 
 class Text2MeshOriginal(nn.Module):
@@ -94,4 +95,29 @@ class Text2MeshOriginal(nn.Module):
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(rendered_images, geo_renders)
 
-        return encoded_renders_dict, rendered_images
+        color_reg = self.get_color_reg(pred_rgb)
+
+        return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images, "color_reg": color_reg}
+    
+        
+    def get_color_reg(self, pred_rgb):
+        """
+        Extracts ground truth color regularizer
+        For orginal model there is no regularization, therefore mask set to zeros.
+        """        
+        mask = torch.zeros_like(pred_rgb)
+
+        color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
+        
+        return color_reg
+        
+    def load_mask(self, pred_rgb):
+        with open(self.args.mask_path) as fp:
+            mesh_metadata = jstyleson.load(fp)
+
+        mask = torch.ones_like(pred_rgb)
+
+        for start, finish in mesh_metadata["mask_vertices"].values():
+            mask[start:finish] = 0 
+            
+        return mask
