@@ -82,7 +82,8 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
     losses = []
     loss_check = None
     for i in tqdm(range(args.n_iter)):
-        loss = trainer.training_step(i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path)
+        loss_dict = trainer.training_step(i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path)
+        loss = list(loss_dict.values())[0] # This is not really nice. At some point we should adapt report_process, etc.
         losses.append(loss)
 
         if i % 100 == 0:

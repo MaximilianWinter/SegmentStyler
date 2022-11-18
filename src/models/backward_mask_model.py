@@ -1,70 +1,32 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import kaolin as kal
-import jstyleson
-import copy
 
-from src.submodels.clip_with_augs import CLIPWithAugs
-from src.submodels.render import Renderer
-from src.submodels.neural_style_field import NeuralStyleField
-from src.utils.render import get_render_resolution
 from src.utils.Normalization import MeshNormalizer
-from src.utils.utils import device
+from src.models import Text2MeshOriginal
+from src.models.mask_backward import MaskBackward
 
 
-class Text2MeshOriginal(nn.Module):
+class Text2MeshBackwardMask(Text2MeshOriginal):
 
     def __init__(self, args, base_mesh):
-        super().__init__()
-        self.args = args
-
-        #### MODELS ####
-        # CLIP
-        self.clip_with_augs = CLIPWithAugs(args)
-        self.res = get_render_resolution(args.clipmodel)
-
-        # Renderer
-        self.renderer = Renderer(dim=(self.res, self.res))
-
-        # MLP
-        self.input_dim = 6 if self.args.input_normals else 3
-        if self.args.only_z:
-            self.input_dim = 1
-        self.mlp = NeuralStyleField(self.args.sigma, self.args.depth, self.args.width, self.args.encoding, self.args.colordepth, self.args.normdepth,
-                                    self.args.normratio, self.args.clamp, self.args.normclamp, niter=self.args.n_iter,
-                                    progressive_encoding=self.args.pe, input_dim=self.input_dim, exclude=self.args.exclude).to(device)
-        self.mlp.reset_weights()
-
-        #### OTHER ####
-        # Mesh
-        self.base_mesh = base_mesh
-        self.base_mesh_vertices = copy.deepcopy(base_mesh.vertices)
-
-        # Prior color
-        self.prior_color = torch.full(
-            size=(self.base_mesh.faces.shape[0], 3, 3), fill_value=0.5, device=device)
-
-        # Default color
-        self.default_color = torch.zeros(len(base_mesh.vertices), 3).to(device)
-        self.default_color[:, :] = torch.tensor([0.5, 0.5, 0.5]).to(device)
-        # Background
-        if self.args.background is None:
-            self.background = None
-        else:
-            assert len(self.args.background) == 3
-            self.background = torch.tensor(self.args.background).to(device)
+        super().__init__(args, base_mesh)
+        print("Initializing Text2MeshBackwardMask...")
+        self.mask_backward = MaskBackward.apply
 
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
+
+        # Do backward masking
+        mask_rgb = 1 - self.load_mask(pred_rgb) # inverting the mask, because the mask is originally defined for the penalizing loss
+        pred_rgb = self.mask_backward(pred_rgb, mask_rgb)
+
+        mask_disp = 1 - self.load_mask(pred_normal)
+        pred_normal = self.mask_backward(pred_normal, mask_disp)
             
         # Get stylized mesh
         self.base_mesh.face_attributes = self.prior_color + kal.ops.mesh.index_vertices_by_faces(
             pred_rgb.unsqueeze(0),
             self.base_mesh.faces)
-
-        self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
 
         if self.args.optimize_displacement:
             self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
@@ -100,25 +62,3 @@ class Text2MeshOriginal(nn.Module):
         color_reg = self.get_color_reg(pred_rgb)
 
         return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images, "color_reg": color_reg}
-    
-        
-    def get_color_reg(self, pred_rgb):
-        """
-        Extracts ground truth color regularizer.
-        """        
-        mask = self.load_mask(pred_rgb)
-
-        color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
-        
-        return color_reg
-        
-    def load_mask(self, pred_rgb):
-        with open(self.args.mask_path) as fp:
-            mesh_metadata = jstyleson.load(fp)
-
-        mask = torch.ones_like(pred_rgb)
-
-        for start, finish in mesh_metadata["mask_vertices"].values():
-            mask[start:finish] = 0 
-            
-        return mask

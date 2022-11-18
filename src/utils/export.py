@@ -4,6 +4,7 @@ import numpy as np
 from torchvision import transforms
 import os
 from pathlib import Path
+import trimesh
 
 from src.submodels.render import Renderer
 from src.utils.Normalization import MeshNormalizer
@@ -33,10 +34,25 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, 
         if args.save_render:
             save_rendered_results(args, dir, final_color, mesh)
 
-        wandb.log({"iter": args.n_iter, "output_mesh": [wandb.Object3D(os.path.join(dir, f"{objbase}_final.obj"))] })            
+        if not args.no_mesh_log:
+            log_mesh_to_wandb(dir, objbase, wandb)
 
         # Save final losses
         torch.save(torch.tensor(losses), os.path.join(dir, "losses.pt"))
+
+def log_mesh_to_wandb(dir, objbase, wandb):
+    with open(os.path.join(dir, f"{objbase}_final.obj")) as fp:
+        mesh_dict = trimesh.exchange.obj.load_obj(fp)
+
+    trimesh_mesh = trimesh.Trimesh(**mesh_dict)
+    glb_output = trimesh.exchange.gltf.export_glb(trimesh_mesh)
+
+    with open(os.path.join(dir, f"{objbase}_final.glb"), "wb") as fp:
+        fp.write(glb_output)
+
+    wandb.log({"output_mesh": [wandb.Object3D(os.path.join(dir, f"{objbase}_final.glb"))] })            
+
+    os.unlink(os.path.join(dir, f"{objbase}_final.glb"))
 
 
 def save_rendered_results(args, dir, final_color, mesh):
