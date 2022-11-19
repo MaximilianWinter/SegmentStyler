@@ -118,7 +118,8 @@ class Text2MeshOriginal(nn.Module):
 
         mask = torch.ones_like(pred_rgb)
 
-        for start, finish in mesh_metadata["mask_vertices"].values():
+        for part in self.args.parts:
+            start, finish = mesh_metadata["mask_vertices"][part]
             mask[start:finish] = 0 
             
         return mask

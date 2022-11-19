@@ -79,6 +79,7 @@ def get_parser():
     parser.add_argument('--no_mesh_log', action="store_true", default=False)
     parser.add_argument('--experiment_group', type=str, default="debug")
     parser.add_argument('--weights_path', type=str, default="new")
+    parser.add_argument('--parts', nargs="*", type=str, default=["seat"])
 
     return parser
 
