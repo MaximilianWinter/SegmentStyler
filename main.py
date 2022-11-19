@@ -78,6 +78,7 @@ def get_parser():
     parser.add_argument('--loss_name', type=str, default="default_loss")
     parser.add_argument('--no_mesh_log', action="store_true", default=False)
     parser.add_argument('--experiment_group', type=str, default="debug")
+    parser.add_argument('--weights_path', type=str, default="new")
 
     return parser
 
