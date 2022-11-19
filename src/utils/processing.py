@@ -51,7 +51,7 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
     text2mesh_model = config["model"](args, base_mesh)
 
     if args.weights_path != "new":
-        text2mesh_model.mlp.load_state_dict(torch.load(args.model_path))
+        text2mesh_model.mlp.load_state_dict(torch.load(args.weights_path))
 
     # DEFINE OPTIMIZER
     optimizer = torch.optim.Adam(text2mesh_model.mlp.parameters(), args.learning_rate, weight_decay=args.decay)
