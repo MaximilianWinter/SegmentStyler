@@ -37,11 +37,11 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, 
         if not args.no_mesh_log:
             log_mesh_to_wandb(dir, objbase, wandb)
 
-        # Save final weights
-        torch.save(mlp.state_dict(), os.path.join(dir, "final_weights.pt"))
-
         # Save final losses
         torch.save(torch.tensor(losses), os.path.join(dir, "losses.pt"))
+    
+    # Save final model
+    torch.save(mlp, os.path.join(dir, "final_mlp.pt"))
 
 def log_mesh_to_wandb(dir, objbase, wandb):
     with open(os.path.join(dir, f"{objbase}_final.obj")) as fp:
