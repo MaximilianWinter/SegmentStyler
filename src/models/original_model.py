@@ -55,9 +55,15 @@ class Text2MeshOriginal(nn.Module):
             assert len(self.args.background) == 3
             self.background = torch.tensor(self.args.background).to(device)
 
+        self.previous_pred_rgb = torch.zeros_like(self.default_color)
+
+        self.initial_pred_rgb = None
+
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
+        if self.initial_pred_rgb is None:
+            self.initial_pred_rgb = pred_rgb.clone().detach()
             
         # Get stylized mesh
         self.base_mesh.face_attributes = self.prior_color + kal.ops.mesh.index_vertices_by_faces(
@@ -97,7 +103,13 @@ class Text2MeshOriginal(nn.Module):
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(rendered_images, geo_renders)
 
-        color_reg = self.get_color_reg(pred_rgb)
+        if self.args.use_previous_prediction:
+            color_reg = self.get_color_reg(pred_rgb-self.previous_pred_rgb)
+        elif self.args.use_initial_prediction:
+            color_reg = self.get_color_reg(pred_rgb-self.initial_pred_rgb)
+        else:
+            color_reg = self.get_color_reg(pred_rgb)
+        self.previous_pred_rgb = pred_rgb.clone().detach()
 
         return {"encoded_renders": encoded_renders_dict, "rendered_images": rendered_images, "color_reg": color_reg}
     
