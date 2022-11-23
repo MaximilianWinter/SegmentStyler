@@ -11,7 +11,7 @@ def get_parser():
 
     # Most relevant
     parser.add_argument('--obj_path', type=str, default='data/chair_testmesh.obj')
-    parser.add_argument('--prompt', nargs="+", default='a chair with a tiger seat')
+    parser.add_argument('--prompts', action="append")
     parser.add_argument('--output_dir', type=str, default='output/')
 
     # Standard Hyperparameters
@@ -79,7 +79,6 @@ def get_parser():
     parser.add_argument('--no_mesh_log', action="store_true", default=False)
     parser.add_argument('--experiment_group', type=str, default="debug")
     parser.add_argument('--weights_path', type=str, default="new")
-    parser.add_argument('--parts', nargs="*", type=str, default=["seat"])
     parser.add_argument('--use_previous_prediction', action="store_true", default=False)
     parser.add_argument('--use_initial_prediction', action="store_true", default=False)
 

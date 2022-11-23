@@ -59,6 +59,8 @@ class Text2MeshOriginal(nn.Module):
 
         self.initial_pred_rgb = None
 
+        self.masks = self.load_masks()
+
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
@@ -118,20 +120,23 @@ class Text2MeshOriginal(nn.Module):
         """
         Extracts ground truth color regularizer.
         """        
-        mask = self.load_mask(pred_rgb)
-
-        color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
+        color_reg = {}
+        for prompt, mask in self.masks.items():
+            color_reg[prompt] = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
         
         return color_reg
         
-    def load_mask(self, pred_rgb):
+    def load_masks(self):
         with open(self.args.mask_path) as fp:
             mesh_metadata = jstyleson.load(fp)
 
-        mask = torch.ones_like(pred_rgb)
-
-        for part in self.args.parts:
-            start, finish = mesh_metadata["mask_vertices"][part]
-            mask[start:finish] = 0 
+        masks = {}
+        for prompt in self.args.prompts:
+            parts = [part for part in mesh_metadata["mask_vertices"].keys() if part in prompt]
+            mask = torch.ones_like(self.default_color)
+            for part in parts:
+                start, finish = mesh_metadata["mask_vertices"][part]
+                mask[start:finish] = 0
+            masks[prompt] = mask
             
-        return mask
+        return masks

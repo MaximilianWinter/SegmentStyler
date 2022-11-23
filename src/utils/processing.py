@@ -75,12 +75,14 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
         network_input = (network_input - torch.mean(network_input, dim=0))/torch.std(network_input, dim=0)
 
     # TEXT PROMPT
-    if args.prompt:
-        prompt = ' '.join(args.prompt)
+    prompts = []
+    if args.prompts:
+        for p in args.prompts:
+            prompts.append(' '.join(p))
     else:
-        raise ValueError("No prompt given.")
+        raise ValueError("No prompts given.")
 
-    trainer = Trainer(text2mesh_model, network_input, prompt, optimizer, lr_scheduler, loss_func)
+    trainer = Trainer(text2mesh_model, network_input, prompts, optimizer, lr_scheduler, loss_func)
 
     losses = []
     loss_check = None
