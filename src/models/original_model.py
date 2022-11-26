@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import kaolin as kal
 import jstyleson
 import copy
+from src.models.fix_numerics import NumericsBackward
 
 from src.submodels.clip_with_augs import CLIPWithAugs
 from src.submodels.render import Renderer
@@ -61,9 +62,15 @@ class Text2MeshOriginal(nn.Module):
 
         self.masks = self.load_masks()
 
+        self.num_backward = NumericsBackward.apply
+
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
+        if self.args.round_renderer_gradients:
+            pred_rgb = self.num_backward(pred_rgb)
+            pred_normal = self.num_backward(pred_normal)
+
         if self.initial_pred_rgb is None:
             self.initial_pred_rgb = pred_rgb.clone().detach()
             
@@ -88,7 +95,7 @@ class Text2MeshOriginal(nn.Module):
                                                                 center_elev=self.args.frontview_center[1],
                                                                 std=self.args.frontview_std,
                                                                 return_views=True,
-                                                                background=self.background)
+                                                                background=self.background)        
         geo_renders = None
         if self.args.geoloss:
             self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(self.default_color.unsqueeze(0),
