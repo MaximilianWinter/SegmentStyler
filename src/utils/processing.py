@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import random
 import wandb
+from pytorch_lightning.utilities.seed import seed_everything
 
 from src.data.mesh import Mesh
 from src.utils.Normalization import MeshNormalizer
@@ -20,6 +21,8 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    seed_everything(seed)
+    #torch.use_deterministic_algorithms(True)
 
 def train(args, config, wand_proj='dl3d', team='meshers'):
     
