@@ -79,7 +79,7 @@ class Text2MeshOriginal(nn.Module):
             pred_rgb.unsqueeze(0),
             self.base_mesh.faces)
 
-        self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
+        self.base_mesh.vertex_colors = pred_rgb + 0.5
 
         if self.args.optimize_displacement:
             self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
