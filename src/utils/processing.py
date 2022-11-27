@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import random
 import wandb
+from pytorch_lightning.utilities.seed import seed_everything
 
 from src.data.mesh import Mesh
 from src.utils.Normalization import MeshNormalizer
@@ -20,6 +21,8 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    seed_everything(seed)
+    #torch.use_deterministic_algorithms(True)
 
 def train(args, config, wand_proj='dl3d', team='meshers'):
     
@@ -75,12 +78,11 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
         network_input = (network_input - torch.mean(network_input, dim=0))/torch.std(network_input, dim=0)
 
     # TEXT PROMPT
-    if args.prompt:
-        prompt = ' '.join(args.prompt)
-    else:
-        raise ValueError("No prompt given.")
+    if not args.prompts:
+        raise ValueError("No prompts given.")
+        
 
-    trainer = Trainer(text2mesh_model, network_input, prompt, optimizer, lr_scheduler, loss_func)
+    trainer = Trainer(text2mesh_model, network_input, args.prompts, optimizer, lr_scheduler, loss_func)
 
     losses = []
     loss_check = None

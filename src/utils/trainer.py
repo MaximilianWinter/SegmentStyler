@@ -6,12 +6,14 @@ from src.utils.utils import device
 
 class Trainer():
     
-    def __init__(self, model, network_input, prompt, optimizer, lr_scheduler, loss_func):
+    def __init__(self, model, network_input, prompts, optimizer, lr_scheduler, loss_func):
         self.model = model
         self.network_input = network_input
 
-        prompt_token = clip.tokenize([prompt]).to(device)
-        self.encoded_text = self.model.clip_with_augs.clip_model.encode_text(prompt_token)
+        self.encoded_text_prompts = []
+        for prompt in prompts:
+            prompt_token = clip.tokenize([prompt]).to(device)
+            self.encoded_text_prompts.append(self.model.clip_with_augs.clip_model.encode_text(prompt_token))
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -21,8 +23,9 @@ class Trainer():
     def training_step(self, i, wandb, clipavg = "view", save_renders=True, save_dir="./"):
         self.optimizer.zero_grad()
         out_dict = self.model(self.network_input)
-        losses_dict = self.loss_func(out_dict, self.encoded_text, self.model.args, clipavg)
+        losses_dict_per_prompt = self.loss_func(out_dict, self.encoded_text_prompts, self.model.args, clipavg)
 
+        losses_dict = losses_dict_per_prompt[self.model.args.prompts[i%len(self.model.args.prompts)]]
         for loss in losses_dict.values():
             if isinstance(loss, torch.Tensor):
                 loss.backward(retain_graph=True)

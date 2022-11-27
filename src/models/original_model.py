@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import kaolin as kal
 import jstyleson
 import copy
+from src.models.fix_numerics import NumericsBackward
 
 from src.submodels.clip_with_augs import CLIPWithAugs
 from src.submodels.render import Renderer
@@ -59,9 +60,17 @@ class Text2MeshOriginal(nn.Module):
 
         self.initial_pred_rgb = None
 
+        self.masks = self.load_masks()
+
+        self.num_backward = NumericsBackward.apply
+
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
+        if self.args.round_renderer_gradients:
+            pred_rgb = self.num_backward(pred_rgb)
+            pred_normal = self.num_backward(pred_normal)
+
         if self.initial_pred_rgb is None:
             self.initial_pred_rgb = pred_rgb.clone().detach()
             
@@ -70,7 +79,7 @@ class Text2MeshOriginal(nn.Module):
             pred_rgb.unsqueeze(0),
             self.base_mesh.faces)
 
-        self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
+        self.base_mesh.vertex_colors = pred_rgb + 0.5
 
         if self.args.optimize_displacement:
             self.base_mesh.vertices = self.base_mesh_vertices + self.base_mesh.vertex_normals * pred_normal
@@ -86,7 +95,7 @@ class Text2MeshOriginal(nn.Module):
                                                                 center_elev=self.args.frontview_center[1],
                                                                 std=self.args.frontview_std,
                                                                 return_views=True,
-                                                                background=self.background)
+                                                                background=self.background)        
         geo_renders = None
         if self.args.geoloss:
             self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(self.default_color.unsqueeze(0),
@@ -118,20 +127,23 @@ class Text2MeshOriginal(nn.Module):
         """
         Extracts ground truth color regularizer.
         """        
-        mask = self.load_mask(pred_rgb)
-
-        color_reg = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
+        color_reg = {}
+        for prompt, mask in self.masks.items():
+            color_reg[prompt] = torch.sum(pred_rgb**2*mask) # penalizing term, to be added to the loss
         
         return color_reg
         
-    def load_mask(self, pred_rgb):
+    def load_masks(self):
         with open(self.args.mask_path) as fp:
             mesh_metadata = jstyleson.load(fp)
 
-        mask = torch.ones_like(pred_rgb)
-
-        for part in self.args.parts:
-            start, finish = mesh_metadata["mask_vertices"][part]
-            mask[start:finish] = 0 
+        masks = {}
+        for prompt in self.args.prompts:
+            parts = [part for part in mesh_metadata["mask_vertices"].keys() if part in prompt]
+            mask = torch.ones_like(self.default_color)
+            for part in parts:
+                start, finish = mesh_metadata["mask_vertices"][part]
+                mask[start:finish] = 0
+            masks[prompt] = mask
             
-        return mask
+        return masks

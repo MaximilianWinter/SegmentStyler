@@ -20,6 +20,7 @@ class Mesh():
         self.face_normals = None
         self.texture_map = None
         self.face_uvs = None
+        self.vertex_colors = None
         if ".obj" in obj_path:
             # if mesh.uvs.numel() > 0:
             #     uvs = mesh.uvs.unsqueeze(0).to(device)
