@@ -1,7 +1,7 @@
 import torch
 import jstyleson
 
-from src.models.fix_numerics import NumericsBackward
+from src.submodels.special_layers import NumericsBackward
 from src.models.original_model import Text2MeshOriginal
 
 
