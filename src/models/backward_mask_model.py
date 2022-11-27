@@ -1,5 +1,5 @@
 from src.models.extended_model import Text2MeshExtended
-from src.models.mask_backward import MaskBackward
+from src.submodels.special_layers import MaskBackward
 
 
 class Text2MeshBackwardMask(Text2MeshExtended):
