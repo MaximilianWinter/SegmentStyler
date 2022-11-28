@@ -48,7 +48,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         # Rendering, Augmentations and CLIP encoding
         encoded_renders_dict, rendered_images = self.render_and_encode()
 
-        color_reg = self.get_color_reg_terms()
+        color_reg = self.get_color_reg_terms(pred_rgb)
 
         self.previous_pred_rgb = pred_rgb.clone().detach()
 
