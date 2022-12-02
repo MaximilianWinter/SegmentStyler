@@ -90,8 +90,9 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
         loss_dict = trainer.training_step(i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path)
         loss = list(loss_dict.values())[0] # This is not really nice. At some point we should adapt report_process, etc.
         losses.append(loss)
+        masks = loss_dict["masks"]
 
         if i % 100 == 0:
             loss_check = report_process(args, i, loss, loss_check, losses)
 
-    export_final_results(args, log_path, losses, base_mesh, text2mesh_model.mlp, network_input, vertices, wandb)
+    export_final_results(args, log_path, losses, base_mesh, text2mesh_model.mlp, network_input, vertices, wandb, masks)

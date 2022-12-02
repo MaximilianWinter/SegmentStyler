@@ -11,9 +11,27 @@ from src.utils.Normalization import MeshNormalizer
 from src.utils.utils import device
 
 
-def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, wandb):
+def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, wandb, masks):
     with torch.no_grad():
-        pred_rgb, pred_normal = mlp(network_input)
+        if isinstance(mlp, torch.nn.ModuleDict):
+            pred_rgb = None
+            pred_normal = None
+            for prompt, mlp_per_prompt in mlp.items():
+                pred_rgb_per_prompt, pred_normal_per_prompt = mlp_per_prompt(vertices)
+                pred_rgb_masked = pred_rgb_per_prompt*(1- masks[prompt])
+                pred_normal_masked = pred_normal_per_prompt*(1- masks[prompt])
+
+                if pred_rgb is not None:
+                    pred_rgb += pred_rgb_masked
+                else:
+                    pred_rgb = pred_rgb_masked
+
+                if pred_normal is not None:
+                    pred_normal += pred_normal_masked
+                else:
+                    pred_normal = pred_normal_masked
+        else:
+            pred_rgb, pred_normal = mlp(network_input)
         pred_rgb = pred_rgb.detach().cpu()
         pred_normal = pred_normal.detach().cpu()
 

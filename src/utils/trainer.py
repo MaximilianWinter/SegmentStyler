@@ -50,5 +50,6 @@ class Trainer():
                     wandb.log({f"loss_{key}": loss.item()}, step=i)
                     return_dict[key] = loss.item()
             
+            return_dict["masks"] = self.model.masks
             return return_dict
             
