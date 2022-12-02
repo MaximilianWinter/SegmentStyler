@@ -1,3 +1,5 @@
+import torch.nn as nn
+
 from src.models.extended_model import Text2MeshExtended
 from src.submodels.neural_style_field import NeuralStyleField
 from src.utils.utils import device
@@ -9,17 +11,20 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         super().__init__(args, base_mesh)
 
         self.mlp = None
-        self.mlps = {}
+        mlp_dict = {}
         for prompt in args.prompts:
             mlp = NeuralStyleField(args, input_dim=self.input_dim).to(device)
             mlp.reset_weights()
 
-            self.mlps[prompt] = mlp
+            mlp_dict[prompt] = mlp
+        
+        self.mlp = nn.ModuleDict(mlp_dict)
 
     def forward(self, vertices):
         # Prop. through MLPs
-
-        for prompt, mlp in self.mlps.items():
+        pred_rgb = None
+        pred_normal = None
+        for prompt, mlp in self.mlp.items():
             pred_rgb_per_prompt, pred_normal_per_prompt = mlp(vertices)
             pred_rgb_masked = pred_rgb_per_prompt*(1- self.masks[prompt])
             pred_normal_masked = pred_normal_per_prompt*(1- self.masks[prompt])
