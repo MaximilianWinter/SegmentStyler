@@ -1,5 +1,11 @@
+import random
 import numpy as np
 import k3d
+from faker import Factory
+
+fake = Factory.create()
+get_rnd_color = lambda: int(fake.hex_color().replace('#', '0x'), 16)
+get_colors = lambda n: [get_rnd_color() for _ in range(n)]
 
 def visualize_pointcloud(point_cloud, point_size=0.025, flip_axes=False, name='point_cloud'):
     plot = k3d.plot(name=name, grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
@@ -26,6 +32,22 @@ def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_ve
     
     plt_points.shader = '3d'
     plot.display()
+
+def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_vector=np.array([0,0,0])):
+    """
+    With batch_size = n, number of points = k.
+    :param point_clouds: list, len n, each element is an array of shape (k, 3)
+    :param labels: list, len n, each element is an array of shape (k, )
+    """
+    plot = k3d.plot(grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
+
+    for i, point_cloud in enumerate(point_clouds):
+        plt_points = k3d.points(positions=(i*shift_vector + point_cloud).astype(np.float32), point_size=point_size, color=get_rnd_color())
+        plot += plt_points
+    
+    plt_points.shader = '3d'
+    plot.display()
+
 
 def visualize_mesh(vertices, faces, flip_axes=False):
     plot = k3d.plot(name='points', grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
