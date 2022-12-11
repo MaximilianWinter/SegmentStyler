@@ -12,6 +12,8 @@ wandb/*
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 condaenv*
+models/*
+!/**/.gitkeep
 
 
 #PartGlot specific

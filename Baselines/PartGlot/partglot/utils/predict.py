@@ -2,7 +2,8 @@ import hydra
 import torch
 import os.path as osp
 
-@hydra.main(config_path="configs", config_name="attn_maps.yaml")
+
+@hydra.main(config_path="../../configs", config_name="predict.yaml")
 def get_attn_maps(config):
     datamodule = hydra.utils.instantiate(config.datamodule)
     
@@ -18,10 +19,3 @@ def get_attn_maps(config):
     model.load_state_dict(ckpt)
     
     return model.get_attn_maps()
-
-if __name__ == "__main__":
-    get_attn_maps()
-
-
-
-
