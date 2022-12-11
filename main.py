@@ -7,6 +7,8 @@ from src.utils.processing import train
 from src.models import *
 from src.utils.loss import *
 
+
+
 def get_parser():
     parser = argparse.ArgumentParser()
 
@@ -69,9 +71,14 @@ def get_parser():
     # Other
     parser.add_argument('--clipavg', type=str, default=None)
     parser.add_argument('--geoloss', action="store_true")
+    
+    # PartGlot
+    parser.add_argument('--partglot_model_path', type=str, default="models/pn_agnostic.ckpt")
+    parser.add_argument('--partglot_data_dir', type=str, default="data/partglot")
+    
 
     # Custom
-    parser.add_argument('--mask_path', type=str, default="data/chair_testmesh_mask.jsonc")
+    parser.add_argument('--mask_path', type=str, default="models/chair_testmesh_mask.jsonc")
     parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
@@ -90,8 +97,6 @@ def get_parser():
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
-    partglot_model = next(unpickle_data(LOCAL_MODELS_PATH / 'partglot.pkl'))
-    attn_maps = partglot_model.get_attn_maps()
 
     config = {
         "model": locals()[args.model_name],

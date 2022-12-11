@@ -6,6 +6,7 @@ import numpy as np
 import random
 import wandb
 from pytorch_lightning.utilities.seed import seed_everything
+from partglot.utils.predict import get_loaded_model
 
 from src.data.mesh import Mesh
 from src.utils.Normalization import MeshNormalizer
@@ -31,6 +32,10 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
                entity=team)
     
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
+    
+    # GET PARTGLOT ATTENTION MAPS
+    partglot = get_loaded_model(data_dir=args.partglot_data_dir, model_path=args.partglot_model_path)
+    attn_maps = partglot.get_attn_maps()
 
     # CREATE OUTPUT DIR
     created_directory = False
