@@ -28,6 +28,19 @@ def get_camera_from_view2(elev, azim, r=3.0):
     camera_proj = kal.render.camera.generate_transformation_matrix(pos, look_at, direction)
     return camera_proj
 
+def get_camera_from_view_and_center(elev, azim, r=3.0, center_point=torch.tensor([0.0, 0.0, 0.0])):
+    x = r * torch.cos(elev) * torch.cos(azim) - center_point[0]
+    y = r * torch.sin(elev) - center_point[1]
+    z = r * torch.cos(elev) * torch.sin(azim) - center_point[2]
+    # print(elev,azim,x,y,z)
+
+    pos = torch.tensor([x, y, z]).unsqueeze(0)
+    look_at = -pos
+    direction = torch.tensor([0.0, 1.0, 0.0]).unsqueeze(0)
+
+    camera_proj = kal.render.camera.generate_transformation_matrix(pos, look_at, direction)
+    return camera_proj
+
 
 def get_render_resolution(clipmodel=None):
         """
