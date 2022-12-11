@@ -221,6 +221,61 @@ class PNAgnostic(pl.LightningModule):
 
         print(print_fmt)
 
+    def get_attn_maps_full(self):
+
+        test_seg_ds = PartglotTestDataset(self.hparams)
+        test_seg_dl = DataLoader(test_seg_ds, batch_size=32, num_workers=4)
+
+        total_attn_maps, total_geos_masks = self.process_test_dataloader(test_seg_dl)
+
+        output = []
+        for i in range(total_attn_maps.shape[0]):
+            (
+                _,
+                signed_distance,
+            ) = test_seg_ds.get_groundtruth_and_signed_distance(i)
+
+            attn, mask = total_attn_maps[i], total_geos_masks[i]
+            attn = attn[:, mask == 1]
+
+            sup_segs2label = attn.max(0)[1].cpu().numpy()
+            pc2sup_segs = np.argmax(signed_distance, 1)
+
+            assign_ft = lambda x: sup_segs2label[x]
+
+            pc2label = assign_ft(pc2sup_segs)
+            
+            output.append((sup_segs2label, pc2label))
+        return output  
+
+    def get_attn_maps(self):
+
+        test_seg_ds = PartglotTestDataset(self.hparams)
+        test_seg_dl = DataLoader(test_seg_ds, batch_size=32, num_workers=4)
+
+        total_attn_maps, total_geos_masks = self.process_test_dataloader(test_seg_dl)
+
+        output = []
+        for i in range(total_attn_maps.shape[0]):
+            (
+                _,
+                signed_distance,
+            ) = test_seg_ds.get_groundtruth_and_signed_distance(i)
+
+            attn, mask = total_attn_maps[i], total_geos_masks[i]
+            attn = attn[:, mask == 1]
+
+            sup_segs2label = attn.max(0)[1].cpu().numpy()
+            pc2sup_segs = np.argmax(signed_distance, 1)
+
+            assign_ft = lambda x: sup_segs2label[x]
+
+            pc2label = assign_ft(pc2sup_segs)
+            
+            output.append((sup_segs2label, pc2label))
+            
+        return output 
+
     def process_test_dataloader(self, test_seg_dl):
         total_attn_maps, total_geos_masks = [], []
 
