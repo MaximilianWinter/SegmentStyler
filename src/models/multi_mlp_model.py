@@ -1,7 +1,10 @@
+import torch
 import torch.nn as nn
+import kaolin as kal
 
 from src.models.extended_model import Text2MeshExtended
 from src.submodels.neural_style_field import NeuralStyleField
+from src.submodels.special_layers import MaskBackward
 from src.utils.utils import device
 
 
@@ -19,6 +22,8 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             mlp_dict[prompt] = mlp
         
         self.mlp = nn.ModuleDict(mlp_dict)
+
+        self.mask_backward = MaskBackward.apply
 
     def forward(self, vertices):
         # Prop. through MLPs
@@ -47,19 +52,77 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         if self.initial_pred_rgb is None:
             self.initial_pred_rgb = pred_rgb.clone().detach()
 
-        # Get stylized mesh
-        self.stylize_mesh(pred_rgb, pred_normal)
+        # Rendering, Augmentations and CLIP encoding per prompt
+        encoded_renders_dict_per_prompt = {}
+        rendered_images_per_prompt = None
+        for prompt in self.args.prompts:
+            inv_mask = 1 - self.masks[prompt]
+            # Get stylized mesh
+            if self.args.do_backward_masking:
+                pred_rgb_masked = self.mask_backward(pred_rgb, inv_mask)
+                pred_normal_masked = self.mask_backward(pred_normal, inv_mask)
+                
+                self.stylize_mesh(pred_rgb_masked, pred_normal_masked)
+            else:
+                self.stylize_mesh(pred_rgb, pred_normal)
 
-        # Rendering, Augmentations and CLIP encoding
-        encoded_renders_dict, rendered_images = self.render_and_encode()
+            center_point = torch.mean(vertices[inv_mask[:, 0].bool()], dim=0) # we use the part's COM
+            distance = torch.sum((vertices[inv_mask[:, 0].bool()] - center_point)**2, dim=1).sqrt().max()*3 # we use 3-times the part's expansion
+            encoded_renders_dict, rendered_images = self.render_and_encode(center_point, distance)
+
+            encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
+            if rendered_images_per_prompt is None:
+                rendered_images_per_prompt = rendered_images
+            else:
+                rendered_images_per_prompt = torch.cat([rendered_images_per_prompt, rendered_images], dim=0)
 
         color_reg = self.get_color_reg_terms(pred_rgb)
 
         self.previous_pred_rgb = pred_rgb.clone().detach()
 
         return {
-            "encoded_renders": encoded_renders_dict,
-            "rendered_images": rendered_images,
+            "encoded_renders": encoded_renders_dict_per_prompt,
+            "rendered_images": rendered_images_per_prompt,
             "color_reg": color_reg,
         }
+
+    def render_and_encode(self, center_point, distance):
+        # Rendering
+        rendered_images, _, _ = self.renderer.render_sampled_views_around_center_point(
+            self.base_mesh,
+            num_views=self.args.n_views,
+            show=self.args.show,
+            center_azim=self.args.frontview_center[0],
+            center_elev=self.args.frontview_center[1],
+            center_point=center_point,
+            distance=distance,
+            std=self.args.frontview_std,
+            return_views=True,
+            background=self.background,
+        )
+        geo_renders = None
+        if self.args.geoloss:
+            self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
+                self.default_color.unsqueeze(0), self.base_mesh.faces
+            )
+
+            geo_renders, _, _ = self.renderer.render_sampled_views_around_center_point(
+                self.base_mesh,
+                num_views=self.args.n_views,
+                show=self.args.show,
+                center_azim=self.args.frontview_center[0],
+                center_elev=self.args.frontview_center[1],
+                center_point=center_point,
+                distance=distance,
+                std=self.args.frontview_std,
+                return_views=True,
+                background=self.background,
+            )
+
+        # Augmentations and CLIP encoding
+        encoded_renders_dict = self.clip_with_augs.get_encoded_renders(
+            rendered_images, geo_renders
+        )
+
+        return encoded_renders_dict, rendered_images
         
