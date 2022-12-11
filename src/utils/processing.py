@@ -36,7 +36,9 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
     # GET PARTGLOT ATTENTION MAPS
     partglot, partglot_dm = get_loaded_model(data_dir=args.partglot_data_dir, model_path=args.partglot_model_path)
     sup_segs2label, pc2label = partglot.get_attn_maps()[0]
-    partglot_mesh = partglot_dm.h5_data['data'][0]
+    partglot_pc = partglot_dm.h5_data['data'][0]
+    # todo: fix `cic_bsp.h5` file to be the same as `shapenet_partseg_chair_bsp.h5`
+    # todo: convert partglot_pc to .obj file https://stackoverflow.com/questions/54898657/i-want-to-generate-a-mesh-from-a-point-cloud-in-python
 
     # CREATE OUTPUT DIR
     created_directory = False
