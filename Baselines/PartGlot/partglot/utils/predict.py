@@ -46,4 +46,4 @@ def get_loaded_model(data_dir, model_path="checkpoints/pn_agnostic.ckpt", batch_
 
     model.load_state_dict(ckpt)
     
-    return model
+    return model, datamodule

@@ -34,8 +34,9 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
     
     # GET PARTGLOT ATTENTION MAPS
-    partglot = get_loaded_model(data_dir=args.partglot_data_dir, model_path=args.partglot_model_path)
+    partglot, partglot_dm = get_loaded_model(data_dir=args.partglot_data_dir, model_path=args.partglot_model_path)
     sup_segs2label, pc2label = partglot.get_attn_maps()[0]
+    partglot_mesh = partglot_dm.h5_data['data'][0]
 
     # CREATE OUTPUT DIR
     created_directory = False
