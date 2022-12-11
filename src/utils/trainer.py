@@ -25,19 +25,10 @@ class Trainer():
         out_dict = self.model(self.network_input)
         losses_dict_per_prompt = self.loss_func(out_dict, self.encoded_text_prompts, self.model.args, clipavg)
 
-        selected_prompt = self.model.args.prompts[i%len(self.model.args.prompts)]
-        losses_dict = losses_dict_per_prompt[selected_prompt]
-
-        for param in self.model.mlp.parameters():
-            param.requires_grad = False
-
-        for param in self.model.mlp[selected_prompt].parameters():
-            param.requires_grad = True
-
-        #for losses_dict in losses_dict_per_prompt.values():
-        for loss in losses_dict.values():
-            if isinstance(loss, torch.Tensor):
-                loss.backward(retain_graph=True)
+        for losses_dict in losses_dict_per_prompt.values():
+            for loss in losses_dict.values():
+                if isinstance(loss, torch.Tensor):
+                    loss.backward(retain_graph=True)
 
         self.optimizer.step()
 
