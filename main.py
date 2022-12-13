@@ -13,7 +13,7 @@ def get_parser():
     parser = argparse.ArgumentParser()
 
     # Most relevant
-    parser.add_argument('--obj_path', type=str, default='data/chair_testmesh.obj')
+    parser.add_argument('--obj_path', type=str, default='data/processed/pc_convertion_test.obj')
     parser.add_argument('--prompts', action="append")
     parser.add_argument('--output_dir', type=str, default='output/')
 
