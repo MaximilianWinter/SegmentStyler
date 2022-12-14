@@ -33,7 +33,7 @@ def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_ve
     plt_points.shader = '3d'
     plot.display()
 
-def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_vector=np.array([0,0,0])):
+def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_vector=np.array([0,0,0]), names=None, part_colors=None, opacity=1):
     """
     With batch_size = n, number of points = k.
     :param point_clouds: list, len n, each element is an array of shape (k, 3)
@@ -42,7 +42,9 @@ def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_v
     plot = k3d.plot(grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
 
     for i, point_cloud in enumerate(point_clouds):
-        plt_points = k3d.points(positions=(i*shift_vector + point_cloud).astype(np.float32), point_size=point_size, color=get_rnd_color())
+        pc_name = names[i] if names else None
+        pc_color = part_colors[i] if part_colors else get_rnd_color()
+        plt_points = k3d.points(positions=(i*shift_vector + point_cloud).astype(np.float32), point_size=point_size, color=pc_color, name=pc_name, opacity=opacity)
         plot += plt_points
     
     plt_points.shader = '3d'

@@ -6,7 +6,6 @@ import numpy as np
 import random
 import wandb
 from pytorch_lightning.utilities.seed import seed_everything
-from partglot.utils.predict import get_loaded_model
 
 from src.data.mesh import Mesh
 from src.utils.Normalization import MeshNormalizer
