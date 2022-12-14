@@ -1,10 +1,15 @@
 import torch
+import numpy as np
+from sklearn.cluster import KMeans
 
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
 from src.partglot.models.pn_agnostic import PNAgnostic
+from src.utils.utils import device
+from src.partglot.utils.processing import cluster_supsegs, vstack2dim, convert2np
+from src.partglot.utils.neural_utils import tokenizing
 
 
-def get_loaded_model(data_dir, model_path="checkpoints/pn_agnostic.ckpt", batch_size=1):
+def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", batch_size=1):
     datamodule = PartglotDataModule(batch_size=batch_size,
         only_correct=True,
         only_easy_context=False,
@@ -32,4 +37,81 @@ def get_loaded_model(data_dir, model_path="checkpoints/pn_agnostic.ckpt", batch_
 
     model.load_state_dict(ckpt)
     
-    return model, datamodule
+    return model.to(device), datamodule
+
+
+def extract_reference_sample(h5_data, sample_idx=0):
+    batch_data = torch.from_numpy(h5_data['data'][sample_idx:sample_idx+1]).unsqueeze(dim=1).float().to(device)
+    mask_data = torch.from_numpy(h5_data['mask'][sample_idx:sample_idx+1]).unsqueeze(dim=1).float().to(device)
+    return batch_data, mask_data
+
+def preprocess_point_cloud(input_point_cloud, n_ssseg_custom=25, random_state=0):
+    input_point_cloud = convert2np(input_point_cloud)
+    pc = vstack2dim(input_point_cloud)
+    pc2sup_segs_kmeans = KMeans(n_clusters=n_ssseg_custom, random_state=0).fit(pc).labels_
+    sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, pc)
+    return sup_segs, pc2sup_segs
+
+def ssegs2input(sup_segs):
+    data_batch = torch.from_numpy(np.array([[sup_segs]])).float().to(device) 
+    mask_batch = torch.from_numpy(np.array([[np.ones(data_batch.shape[2])]])).float().to(device) 
+    return data_batch, mask_batch
+
+def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=["back", "seat", "leg", "arm"]):
+    attn_maps = []
+    for pn in part_names:
+        text_embeddings = tokenizing(word2int, f"chair with a {pn}").to(device)[None].expand(
+            1, -1
+        )
+        tmp = partglot.forward(
+            ssegs_batch, # custom_ssegs_batch / batch_data
+            mask_batch, # custom_mask_batch / mask_data
+            text_embeddings, True)
+        attn_maps.append(tmp)
+        
+    attn_maps_concat = torch.cat(attn_maps).max(0)[1].cpu().numpy()
+
+    sup_segs2label = np.squeeze(attn_maps_concat)
+    return sup_segs2label
+
+
+def extract_pc2label(ssegs2label):
+    pc2label=[] 
+    for lbl in ssegs2label:
+        tmp = np.ones(512) * lbl
+        pc2label.append(tmp)
+        
+    pc2label = np.concatenate(pc2label).astype(int)
+    
+    return pc2label
+
+
+def get_attn_mask_objects(pc:np.array, pc2label:np.array, part_names=["back", "seat", "leg", "arm"]):
+    """
+    Returns ordered point cloud and mask indices in our format.
+    """
+    stacked_pc = vstack2dim(pc)
+    # pc_final = vstack2dim(final_ssegs_batch.cpu().numpy())
+    
+    
+    arg_sort = pc2label.argsort()
+    
+    out_pc2label, out_pg_pc = pc2label[arg_sort], np.vstack(stacked_pc)[arg_sort]
+
+    mask = {}
+    for i, pn in enumerate(part_names):
+        tmp = np.where(out_pc2label == i)[0]
+        print(tmp.shape)
+        if tmp.shape[0] == 0:
+            continue
+        mask[pn] = [tmp.min(), tmp.max()]
+    
+    return {"mask_vertices": mask}, out_pg_pc
+
+
+def segment_pc_with_labels(final_pc, final_mask):
+    label_ssegs = []
+    for s,f in final_mask['mask_vertices'].values():
+        tmp = final_pc[s:f].astype(float)
+        label_ssegs.append(tmp)
+    return np.array(label_ssegs)

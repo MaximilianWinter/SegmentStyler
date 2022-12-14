@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
  
@@ -24,30 +25,29 @@ def cluster_supsegs(sorted_labels, sorted_pc, sup_seg_size=512):
         labels.append(lbl)
     return np.array(sup_segs), np.array(labels)
 
-def get_attn_mask_objects(pc, pc2label, part_names):
-    """
-    Returns ordered point cloud and mask indices in our format.
-    """
-    stacked_pc = np.vstack(np.vstack(pc))
-    
-    arg_sort = pc2label.argsort()
-    
-    out_pc2label, out_pg_pc = pc2label[arg_sort], np.vstack(stacked_pc)[arg_sort]
-
-    mask = {}
-    for i, pn in enumerate(part_names):
-        tmp = np.where(out_pc2label == i)[0]
-        print(tmp.shape)
-        if tmp.shape[0] == 0:
-            continue
-        mask[pn] = [tmp.min(), tmp.max()]
-    
-    return {"mask_vertices": mask}, out_pg_pc
-
-def vstack2dim(data, dim=2):
+def vstack2dim(data:np.array, dim=2):
     if len(data.shape) <= dim:
         return data
     else:
-        data = np.vstack(data)
+        data = np.vstack(convert2np(data))
         return vstack2dim(data=data, dim=dim)
 
+
+def print_stats(pc_final:torch.tensor, use_bsp_ssegs_gt:bool):
+    
+    pc_final = vstack2dim(pc_final.cpu().numpy())
+    
+    mask = (pc_final != np.array([0,0,0])).max(axis=1)
+    non_zero_pc = pc_final[mask]
+
+    unique_point_perc = np.unique(pc_final, axis=0).shape[0] / vstack2dim(pc_final).shape[0]
+    unique_point_perc_non_zero = np.unique(non_zero_pc, axis=0).shape[0] / vstack2dim(non_zero_pc).shape[0]
+    print("use_bsp_ssegs_gt:", use_bsp_ssegs_gt)
+    print(f"unique point percentage: {unique_point_perc:.1%}")
+    print(f"unique point percentage (non-zeros): {unique_point_perc_non_zero:.1%}")
+
+
+def convert2np(tensor):
+    if torch.is_tensor(tensor):
+        tensor = tensor.cpu().numpy()
+    return tensor
