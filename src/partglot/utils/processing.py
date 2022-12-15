@@ -35,16 +35,16 @@ def vstack2dim(data:np.array, dim=2):
 
 def print_stats(pc_final:torch.tensor, use_bsp_ssegs_gt:bool):
     
-    pc_final = vstack2dim(pc_final.cpu().numpy())
+    pc_final = vstack2dim(convert2np(pc_final))
     
     mask = (pc_final != np.array([0,0,0])).max(axis=1)
     non_zero_pc = pc_final[mask]
 
     unique_point_perc = np.unique(pc_final, axis=0).shape[0] / vstack2dim(pc_final).shape[0]
     unique_point_perc_non_zero = np.unique(non_zero_pc, axis=0).shape[0] / vstack2dim(non_zero_pc).shape[0]
-    print("use_bsp_ssegs_gt:", use_bsp_ssegs_gt)
-    print(f"unique point percentage: {unique_point_perc:.1%}")
-    print(f"unique point percentage (non-zeros): {unique_point_perc_non_zero:.1%}")
+    print(f"Running point cloud stats with use_bsp_ssegs_gt={use_bsp_ssegs_gt}")
+    print(f"- unique point percentage: {unique_point_perc:.1%}")
+    print(f"- unique point percentage (non-zeros): {unique_point_perc_non_zero:.1%}\n")
 
 
 def convert2np(tensor):

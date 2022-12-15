@@ -32,7 +32,7 @@ def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", ba
 
     ckpt = torch.load(model_path)
     if "state_dict" in ckpt:
-        print("write state dict")
+        # print("write state dict")
         ckpt = ckpt["state_dict"]
 
     model.load_state_dict(ckpt)
@@ -101,7 +101,6 @@ def get_attn_mask_objects(pc:np.array, pc2label:np.array, part_names=["back", "s
     mask = {}
     for i, pn in enumerate(part_names):
         tmp = np.where(out_pc2label == i)[0]
-        print(tmp.shape)
         if tmp.shape[0] == 0:
             continue
         mask[pn] = [tmp.min(), tmp.max()]
@@ -114,4 +113,4 @@ def segment_pc_with_labels(final_pc, final_mask):
     for s,f in final_mask['mask_vertices'].values():
         tmp = final_pc[s:f].astype(float)
         label_ssegs.append(tmp)
-    return np.array(label_ssegs)
+    return np.array(label_ssegs, dtype=object)
