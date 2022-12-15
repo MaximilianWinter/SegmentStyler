@@ -28,7 +28,7 @@ class PartSegmenter():
             Parameters:
                 sample_idx (int): sample index from CiC BSP-Net Dataset to be run
                 use_sseg_gt (bool): defines if super segments should be used from 
-                BSP-Net groud truth or reclustered (currently only with K-Means)
+                BSP-Net groud truth or reclustered (with K-Means or DBSCAN)
                 cluster_tgt (str): clustering reference propertyfrom input mesh
                 ("normals" | "vertices" | "vertices_and_normals") 
                 
@@ -47,7 +47,7 @@ class PartSegmenter():
             
             Parameters:
                 mesh (trimesh.Trimesh): input mesh
-                cluster_tgt (str): clustering reference propertyfrom input mesh
+                cluster_tgt (str): clustering reference property from input mesh
                 ("normals" | "vertices" | "vertices_and_normals") 
                 
             Returns:
