@@ -42,7 +42,7 @@ class PartSegmenter():
         self.final_mask, self.final_pc = self._get_attn_map_objects() 
         self.label_ssegs = self._get_label_ssegs()
         self.run_desinty_stats(use_sseg_gt)
-        print(f"Successfully ran part segmentation with use_sseg_gt={use_sseg_gt}")
+        print(f"Successfully ran part segmentation with use_sseg_gt={use_sseg_gt}\n")
         return self.final_mask, self.final_pc, self.label_ssegs
 
     def visualize_labels(self, opacity=0.25):

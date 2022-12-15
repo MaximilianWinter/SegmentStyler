@@ -39,6 +39,7 @@ def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_v
     :param point_clouds: list, len n, each element is an array of shape (k, 3)
     :param labels: list, len n, each element is an array of shape (k, )
     """
+    print('Visualization rendering started...')
     plot = k3d.plot(grid_visible=False)
 
     for i, point_cloud in enumerate(point_clouds):
