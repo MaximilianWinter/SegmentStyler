@@ -75,6 +75,7 @@ class PartSegmenter():
         print_stats(self.final_pc, use_sseg_gt)
         
     def _dummy_run(self, mesh, cluster_tgt, use_sseg_gt, sample_idx):
+        print("Starting to run...\n")
         self.use_sseg_gt = use_sseg_gt
         self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
         self.mesh = mesh if mesh else self.ref_sseg_data

@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from sklearn.cluster import KMeans, DBSCAN
+from sklearn.cluster import KMeans, DBSCAN, SpectralClustering
 
 from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
@@ -47,6 +47,8 @@ def extract_reference_sample(h5_data, sample_idx=0):
 
 def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals", n_ssseg_custom=25, random_state=0):
     
+    print("Startint point cloud preprocessing (super segmentation)\n")
+    
     if cluster_tgt == "normals":
         cluster_tgt, coordinates = mesh.vertex_normals, mesh.vertices
     elif cluster_tgt == "vertices":
@@ -60,6 +62,8 @@ def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals",
         clusterizer  = DBSCAN(eps=1.25)
     elif cluster_method == "kmeans":
         clusterizer = KMeans(n_clusters=n_ssseg_custom, random_state=0)
+    elif cluster_method == "spectral_clustering":
+        clusterizer = SpectralClustering(n_clusters=n_ssseg_custom, random_state=0)
     else:
         raise NotImplementedError
     
