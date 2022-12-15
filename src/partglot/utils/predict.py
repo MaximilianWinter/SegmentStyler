@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from sklearn.cluster import KMeans
 
+from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
 from src.partglot.models.pn_agnostic import PNAgnostic
 from src.utils.utils import device
@@ -39,17 +40,25 @@ def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", ba
     
     return model.to(device), datamodule
 
-
 def extract_reference_sample(h5_data, sample_idx=0):
     batch_data = torch.from_numpy(h5_data['data'][sample_idx:sample_idx+1]).unsqueeze(dim=1).float().to(device)
     mask_data = torch.from_numpy(h5_data['mask'][sample_idx:sample_idx+1]).unsqueeze(dim=1).float().to(device)
     return batch_data, mask_data
 
-def preprocess_point_cloud(input_point_cloud, n_ssseg_custom=25, random_state=0):
-    input_point_cloud = convert2np(input_point_cloud)
-    pc = vstack2dim(input_point_cloud)
-    pc2sup_segs_kmeans = KMeans(n_clusters=n_ssseg_custom, random_state=0).fit(pc).labels_
-    sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, pc)
+def preprocess_point_cloud(mesh, cluster_tgt="normals", n_ssseg_custom=25, random_state=0):
+    
+    if cluster_tgt == "normals":
+        cluster_tgt, coordinates = mesh.vertex_normals, mesh.vertices
+    elif cluster_tgt == "vertices":
+        cluster_tgt, coordinates = vstack2dim(mesh), vstack2dim(mesh)
+    elif cluster_tgt == "vertices_and_normals":
+        cluster_tgt, coordinates = zip_arrays(mesh.vertex_normals, mesh.vertices), mesh.vertices
+    else:
+        raise NotImplementedError
+    
+    pc2sup_segs_kmeans = KMeans(n_clusters=n_ssseg_custom, random_state=0).fit(cluster_tgt).labels_
+    sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, coordinates)
+    
     return sup_segs, pc2sup_segs
 
 def ssegs2input(sup_segs):

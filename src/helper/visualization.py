@@ -33,24 +33,28 @@ def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_ve
     plt_points.shader = '3d'
     plot.display()
 
-def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_vector=np.array([0,0,0]), names=None, part_colors=None, opacity=1):
+def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_vector=np.array([0,0,0]), names=None, part_colors=None, opacity=1, dump_screenshots=True):
     """
     With batch_size = n, number of points = k.
     :param point_clouds: list, len n, each element is an array of shape (k, 3)
     :param labels: list, len n, each element is an array of shape (k, )
     """
     print('Visualization rendering started...')
+    
+    from k3d.transform import process_transform_arguments
+    
     plot = k3d.plot(grid_visible=False)
 
     for i, point_cloud in enumerate(point_clouds):
         pc_name = names[i] if names else None
         pc_color = part_colors[i] if part_colors else get_rnd_color()
-        plt_points = k3d.points(positions=(i*shift_vector + point_cloud).astype(np.float32), point_size=point_size, color=pc_color, name=pc_name, opacity=opacity)
+        plt_points = k3d.points(positions=(i*shift_vector + point_cloud).astype(np.float32), point_size=point_size, color=pc_color, name=pc_name, opacity=opacity, grid_auto_fit=True)
+        plt_points = process_transform_arguments(plt_points, rotation=[np.pi, -2 * np.pi / 6, -4.5 * np.pi / 6, -5.5*np.pi/6])
         plot += plt_points
     
-    plt_points.shader = '3d'
-    plot.display()
 
+    plot.display()
+    
 
 def visualize_mesh(vertices, faces, flip_axes=False):
     plot = k3d.plot(name='points', grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))

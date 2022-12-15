@@ -101,3 +101,14 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
             loss_check = report_process(args, i, loss, loss_check, losses)
 
     export_final_results(args, log_path, losses, base_mesh, text2mesh_model.mlp, network_input, vertices, wandb)
+    
+    
+    
+
+def zip_arrays(left, right):
+    rows = []
+    for li, ri in zip(left, right):
+        row = np.concatenate([li,ri])
+        rows.append(row)
+    return np.array(rows)
+    

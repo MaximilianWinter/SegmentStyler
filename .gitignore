@@ -14,6 +14,10 @@ Baselines/text2mesh/results/*
 condaenv*
 models/*
 !/**/.gitkeep
+Baselines/BSP-NET-pytorch/data/*
+Baselines/BSP-NET-pytorch/samples/*
+Baselines/BSP-NET-pytorch/bspt.c
+
 
 
 #PartGlot specific
