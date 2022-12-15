@@ -3,7 +3,7 @@ from src.helper.visualization import get_rnd_color
 from src.partglot.utils.predict import get_loaded_model, extract_reference_sample, preprocess_point_cloud, ssegs2input, predict_ssegs2label, extract_pc2label, get_attn_mask_objects, segment_pc_with_labels
 from src.partglot.utils.processing import print_stats
 from src.helper.paths import LOCAL_MODELS_PATH, LOCAL_DATA_PATH
-
+import trimesh
 
 class PartSegmenter():
     """
@@ -21,7 +21,7 @@ class PartSegmenter():
         self.use_sseg_gt = False
         print(f"PartSegmenter initialized with\n- sseg_count: {sseg_count}\n- partglot_data_dir: {partglot_data_dir}\n- partglot_model_path: {partglot_model_path}\n")
         
-    def run_from_ref_data(self, sample_idx:int, use_sseg_gt=True, cluster_tgt="vertices") -> tuple:
+    def run_from_ref_data(self, sample_idx:int, use_sseg_gt:bool=True, cluster_tgt:str="vertices") -> tuple:
         """
         Returns a segmented point cloud based on the PartGlot CiC BSP-Net Dataset
             
@@ -29,48 +29,34 @@ class PartSegmenter():
                 sample_idx (int): sample index from CiC BSP-Net Dataset to be run
                 use_sseg_gt (bool): defines if super segments should be used from 
                 BSP-Net groud truth or reclustered (currently only with K-Means)
+                cluster_tgt (str): clustering reference propertyfrom input mesh
+                ("normals" | "vertices" | "vertices_and_normals") 
                 
             Returns:
                 final_mask (dict): attn maps in our format
                 final_pc (np.array): point cloud reordered to map final_mask indices
                 label_ssegs (np.array): point cloud regrouped in part based labels
         """
-        self.use_sseg_gt = use_sseg_gt
-        self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
-        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.ref_sseg_data, cluster_tgt=cluster_tgt)
-        self._set_predict_input(self.use_sseg_gt)
-        self.sup_segs2label = self._predict_ssegs2label()
-        self.pc2label = self._get_pc2label()
-        self.final_mask, self.final_pc = self._get_attn_map_objects() 
-        self.label_ssegs = self._get_label_ssegs()
-        self.run_desinty_stats(self.use_sseg_gt)
-        print(f"Successfully ran part segmentation with use_sseg_gt={self.use_sseg_gt}\n")
+        self.final_mask, self.final_pc, self.label_ssegs = \
+            self._dummy_run(mesh=None, cluster_tgt=cluster_tgt, use_sseg_gt=use_sseg_gt, sample_idx=sample_idx)
         return self.final_mask, self.final_pc, self.label_ssegs
     
-    def run_from_trimesh(self, mesh, cluster_tgt="normals") -> tuple:
+    def run_from_trimesh(self, mesh:trimesh.Trimesh, cluster_tgt:str="normals") -> tuple:
         """
-        Returns a segmented point cloud based on the PartGlot CiC BSP-Net Dataset
+        Returns a segmented point cloud based on custom input Trimesh mesh
             
             Parameters:
-                sample_idx (int): sample index from CiC BSP-Net Dataset to be run
-                use_sseg_gt (bool): defines if super segments should be used from 
-                BSP-Net groud truth or reclustered (currently only with K-Means)
+                mesh (trimesh.Trimesh): input mesh
+                cluster_tgt (str): clustering reference propertyfrom input mesh
+                ("normals" | "vertices" | "vertices_and_normals") 
                 
             Returns:
                 final_mask (dict): attn maps in our format
                 final_pc (np.array): point cloud reordered to map final_mask indices
                 label_ssegs (np.array): point cloud regrouped in part based labels
         """
-        # self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
-        self.mesh = mesh
-        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt)
-        self._set_predict_input()
-        self.sup_segs2label = self._predict_ssegs2label()
-        self.pc2label = self._get_pc2label()
-        self.final_mask, self.final_pc = self._get_attn_map_objects() 
-        self.label_ssegs = self._get_label_ssegs()
-        self.run_desinty_stats()
-        print(f"Successfully ran part segmentation\n")
+        self.final_mask, self.final_pc, self.label_ssegs = \
+            self._dummy_run(mesh, cluster_tgt, use_sseg_gt=False, sample_idx=None)
         return self.final_mask, self.final_pc, self.label_ssegs
 
     def visualize_labels(self, opacity=0.25, point_size=0.015):
@@ -88,11 +74,31 @@ class PartSegmenter():
     def run_desinty_stats(self, use_sseg_gt=False):
         print_stats(self.final_pc, use_sseg_gt)
         
+    def _dummy_run(self, mesh, cluster_tgt, use_sseg_gt, sample_idx):
+        self.use_sseg_gt = use_sseg_gt
+        self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
+        self.mesh = mesh if mesh else self.ref_sseg_data
+        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt)
+        self.sseg_count = self.pc2sup_segs.max() + 1 
+        self._set_predict_input(self.use_sseg_gt)
+        self.sup_segs2label = self._predict_ssegs2label()
+        self.pc2label = self._get_pc2label()
+        self.final_mask, self.final_pc = self._get_attn_map_objects() 
+        self.label_ssegs = self._get_label_ssegs()
+        self.run_desinty_stats(self.use_sseg_gt)
+        print(f"Successfully ran part segmentation with use_sseg_gt={self.use_sseg_gt}\n")
+
+        return self.final_mask, self.final_pc, self.label_ssegs
+
+    
     def _load_partglot(self):
         return get_loaded_model(data_dir=self.partglot_data_dir, model_path=self.partglot_model_path)
     
     def _load_partglot_ref(self, sample_idx):
-        return extract_reference_sample(self.partglot_dm.h5_data, sample_idx)
+        if sample_idx:
+            return extract_reference_sample(self.partglot_dm.h5_data, sample_idx)
+        else:
+            return None, None
     
     def _get_ssegs(self, batch_point_cloud, cluster_tgt="normals"):
         return preprocess_point_cloud(batch_point_cloud, cluster_tgt=cluster_tgt)

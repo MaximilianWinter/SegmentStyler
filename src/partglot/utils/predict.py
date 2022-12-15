@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
 
 from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
@@ -45,7 +45,7 @@ def extract_reference_sample(h5_data, sample_idx=0):
     mask_data = torch.from_numpy(h5_data['mask'][sample_idx:sample_idx+1]).unsqueeze(dim=1).float().to(device)
     return batch_data, mask_data
 
-def preprocess_point_cloud(mesh, cluster_tgt="normals", n_ssseg_custom=25, random_state=0):
+def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals", n_ssseg_custom=25, random_state=0):
     
     if cluster_tgt == "normals":
         cluster_tgt, coordinates = mesh.vertex_normals, mesh.vertices
@@ -56,7 +56,14 @@ def preprocess_point_cloud(mesh, cluster_tgt="normals", n_ssseg_custom=25, rando
     else:
         raise NotImplementedError
     
-    pc2sup_segs_kmeans = KMeans(n_clusters=n_ssseg_custom, random_state=0).fit(cluster_tgt).labels_
+    if cluster_method == "dbscan":
+        clusterizer  = DBSCAN(eps=1.25)
+    elif cluster_method == "kmeans":
+        clusterizer = KMeans(n_clusters=n_ssseg_custom, random_state=0)
+    else:
+        raise NotImplementedError
+    
+    pc2sup_segs_kmeans = clusterizer.fit(cluster_tgt).labels_
     sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, coordinates)
     
     return sup_segs, pc2sup_segs
