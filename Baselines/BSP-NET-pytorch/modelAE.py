@@ -652,7 +652,7 @@ class BSP_AE(object):
 
 
 	#output bsp shape as obj with color
-	def test_mesh_obj_material(self, config):
+	def test_mesh_obj_material_old(self, config):
 		#load previous checkpoint
 		if not self.load(): exit(-1)
 		
@@ -739,6 +739,110 @@ class BSP_AE(object):
 
 			fout2.close()
 
+	def test_mesh_obj_material(self, config):
+			#load previous checkpoint
+			if not self.load(): exit(-1)
+			
+			w2 = self.bsp_network.generator.convex_layer_weights.detach().cpu().numpy()
+
+			dima = self.test_size
+			dim = self.real_size
+			multiplier = int(dim/dima)
+			multiplier2 = multiplier*multiplier
+
+			#write material
+			#all output shapes share the same material
+			#which means the same convex always has the same color for different shapes
+			#change the colors in default.mtl to visualize correspondences between shapes
+			fout2 = open(config.sample_dir+"/default.mtl", 'w')
+			for i in range(self.c_dim):
+					fout2.write("newmtl m"+str(i+1)+"\n") #material id
+					fout2.write("Kd 0.80 0.80 0.80\n") #color (diffuse) RGB 0.00-1.00
+					fout2.write("Ka 0 0 0\n") #color (ambient) leave 0s
+			fout2.close()
+
+			self.bsp_network.eval()
+			for t in range(config.start, min(len(self.data_voxels),config.end)):
+					model_float = np.ones([self.real_size,self.real_size,self.real_size,self.c_dim],np.float32)
+					batch_voxels = self.data_voxels[t:t+1].astype(np.float32)
+					batch_voxels = torch.from_numpy(batch_voxels)
+					batch_voxels = batch_voxels.to(self.device)
+					_, out_m, _,_ = self.bsp_network(batch_voxels, None, None, None, is_training=False)
+					for i in range(multiplier):
+							for j in range(multiplier):
+									for k in range(multiplier):
+											minib = i*multiplier2+j*multiplier+k
+											point_coord = self.coords[minib:minib+1]
+											_,_, model_out, _ = self.bsp_network(None, None, out_m, point_coord, is_training=False)
+											model_float[self.aux_x+i,self.aux_y+j,self.aux_z+k,:] = np.reshape(model_out.detach().cpu().numpy(), [self.test_size,self.test_size,self.test_size,self.c_dim])
+					
+					out_m = out_m.detach().cpu().numpy()
+					
+					bsp_convex_list = []
+					color_idx_list = []
+					# model_float = model_float<0.01
+					model_float = model_float<config.threshold
+					model_float_sum = np.sum(model_float,axis=3)
+					for i in range(self.c_dim):
+							slice_i = model_float[:,:,:,i]
+							if np.max(slice_i)>0: #if one voxel is inside a convex
+									if np.min(model_float_sum-slice_i*2)>=0: #if this convex is redundant, i.e. the convex is inside the shape
+											model_float_sum = model_float_sum-slice_i
+									else:
+											box = []
+											for j in range(self.p_dim):
+													#if w2[j,i]>0.01:
+													if w2[j,i]>config.threshold:
+															a = -out_m[0,0,j]
+															b = -out_m[0,1,j]
+															c = -out_m[0,2,j]
+															d = -out_m[0,3,j]
+															box.append([a,b,c,d])
+											if len(box)>0:
+													bsp_convex_list.append(np.array(box,np.float32))
+													color_idx_list.append(i)
+													
+					#print(bsp_convex_list)
+					print(len(bsp_convex_list))
+					
+					#convert bspt to mesh
+					vertices = []
+
+					#write obj
+					# Juil: I changed this part to output triangle meshes.
+					fout2 = open(config.sample_dir+"/"+str(t)+"_bsp.obj", 'w')
+					fout2.write("mtllib default.mtl\n")
+					for i in range(len(bsp_convex_list)):
+							vg, tg = get_mesh([bsp_convex_list[i]])
+							vbias=len(vertices)+1
+							vertices = vertices+vg
+							fout2.write("usemtl m"+str(color_idx_list[i]+1)+"\n")
+							for ii in range(len(vg)):
+									fout2.write("v "+str(vg[ii][0])+" "+str(vg[ii][1])+" "+str(vg[ii][2])+"\n")
+							for ii in range(len(tg)):
+									# fout2.write("f")
+									# for jj in range(len(tg[ii])):
+											# fout2.write(" "+str(tg[ii][jj]+vbias))
+									# fout2.write("\n")
+									pivot = tg[ii][0] 
+									for jj in range(1, len(tg[ii])-1):
+										fout2.write(f"f {pivot+vbias} {tg[ii][jj]+vbias} {tg[ii][jj+1]+vbias}\n")
+
+					fout2.close()
+					# for i in range(len(bsp_convex_list)):
+					# fout2 = open(config.sample_dir+"/"+str(t)+"_"+str(i)+"_bsp.obj", "w")
+					# vg, tg = get_mesh([bsp_convex_list[i]])
+					# for ii in range(len(vg)):
+							# fout2.write("v "+str(vg[ii][0])+" "+str(vg[ii][1])+" "+str(vg[ii][2])+"\n")
+					# for ii in range(len(tg)):
+							# # fout2.write("f")
+							# pivot = tg[ii][0] 
+							# for jj in range(1, len(tg[ii])-1):
+									# fout2.write(f"f {pivot} {tg[ii][jj]} {tg[ii][jj+1]} \n")
+							# for jj in range(len(tg[ii])):
+									# # fout2.write(" "+str(tg[ii][jj]+vbias))
+									# fout2.write(" "+str(tg[ii][jj]))
+							# fout2.write("\n")
 
 	#output h3
 	def test_dae3(self, config):
