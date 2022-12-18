@@ -712,8 +712,8 @@ class Renderer:
         # take principal axes with smalles singular_value
         axis = principal_axes[:,singular_values.argmin()]
         axis = axis/torch.linalg.norm(axis,ord=2)
-        #flip_idx = np.random.choice(2)
-        #axis = [axis, -axis][flip_idx]
+        flip_idx = np.random.choice(2)
+        axis = [axis, -axis][flip_idx]
         #distance = singular_values.min().item()
 
         center_elev = torch.asin(axis[1]).item()
