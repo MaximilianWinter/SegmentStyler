@@ -67,9 +67,12 @@ class Text2MeshExtended(Text2MeshOriginal):
 
         masks = {}
         for prompt in self.args.prompts:
-            parts = [
-                part for part in mesh_metadata["mask_vertices"].keys() if part in prompt
-            ]
+            if "legs" in prompt:
+                parts = ["leg_1", "leg_2", "leg_3", "leg_4"]
+            else:
+                parts = [
+                    part for part in mesh_metadata["mask_vertices"].keys() if part in prompt
+                ]
             mask = torch.ones_like(self.default_color)
             for part in parts:
                 start, finish = mesh_metadata["mask_vertices"][part]
