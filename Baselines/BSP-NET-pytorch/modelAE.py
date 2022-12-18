@@ -337,7 +337,8 @@ class BSP_AE(object):
 
 	@property
 	def model_dir(self):
-		return "{}_ae_{}".format(self.dataset_name, self.input_size)
+		# return "{}_ae_{}".format(self.dataset_name, self.input_size)
+		return "all_vox256_img_ae_{}".format(self.input_size)
 
 	def load(self):
 		#load previous checkpoint
