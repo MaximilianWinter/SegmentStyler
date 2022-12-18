@@ -67,8 +67,10 @@ class Text2MeshMultiMLP(Text2MeshExtended):
                 self.stylize_mesh(pred_rgb, pred_normal)
 
             center_point = torch.mean(vertices[inv_mask[:, 0].bool()], dim=0) # we use the part's COM
-            distance = torch.sum((vertices[inv_mask[:, 0].bool()] - center_point)**2, dim=1).sqrt().max()*3 # we use 3-times the part's expansion
-            encoded_renders_dict, rendered_images = self.render_and_encode(center_point, distance)
+            distance = torch.sum((vertices[inv_mask[:, 0].bool()] - center_point)**2, dim=1).sqrt().max()*2 # we use 2-times the part's expansion
+            (U, S, V) = torch.pca_lowrank(vertices[inv_mask[:, 0].bool()])
+            m = vertices[inv_mask[:, 0].bool()].shape[0]
+            encoded_renders_dict, rendered_images = self.render_and_encode(center_point, distance, S, V, m)
 
             encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
             if rendered_images_per_prompt is None:
@@ -86,10 +88,10 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             "color_reg": color_reg,
         }
 
-    def render_and_encode(self, center_point, distance):
+    def render_and_encode(self, center_point, distance, covariances, principal_axes, num_vertices):
         # Rendering
-        rendered_images, _, _ = self.renderer.render_sampled_views_around_center_point(
-            self.base_mesh,
+        rendered_images, _, _ = self.renderer.render_sampled_views_along_principal_axes(
+            self.base_mesh,covariances, principal_axes,num_vertices,
             num_views=self.args.n_views,
             show=self.args.show,
             center_azim=self.args.frontview_center[0],
@@ -106,8 +108,8 @@ class Text2MeshMultiMLP(Text2MeshExtended):
                 self.default_color.unsqueeze(0), self.base_mesh.faces
             )
 
-            geo_renders, _, _ = self.renderer.render_sampled_views_around_center_point(
-                self.base_mesh,
+            geo_renders, _, _ = self.renderer.render_sampled_views_along_principal_axes(
+                self.base_mesh,covariances, principal_axes,num_vertices,
                 num_views=self.args.n_views,
                 show=self.args.show,
                 center_azim=self.args.frontview_center[0],
