@@ -1,4 +1,4 @@
-for lambda in 0.001 0.0025 0.005 0.0075 0.01 0.025 0.05 0.075 0.1
+for lambda in 2.5e-5 5e-5 7.5e-5
 do
     python main.py \
     --obj_path data/chair_testmesh.obj \
@@ -32,5 +32,6 @@ do
     --loss_name penalizing_loss \
     --width 512 \
     --depth 2 \
-    --round_renderer_gradients
+    --round_renderer_gradients \
+    --model_name Text2MeshExtended
 done
