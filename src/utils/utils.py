@@ -51,3 +51,15 @@ def report_process(args, i, loss, loss_check, losses):
         loss_check = np.mean(losses[-100:])
 
     return loss_check
+
+def gaussian3D(X, mu, Sigma):
+    """
+    @param X: shape (N, 3)
+    """
+    inv_sigma = torch.linalg.inv(Sigma)
+    X_prime = (X-mu)
+
+    Y = inv_sigma@X_prime.T # (3, N)
+    val = torch.sum(X_prime.T*Y, dim=0) # (N)
+
+    return torch.exp(-0.5*val)

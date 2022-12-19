@@ -8,7 +8,7 @@ import trimesh
 
 from src.submodels.render import Renderer
 from src.utils.Normalization import MeshNormalizer
-from src.utils.utils import device
+from src.utils.utils import device, gaussian3D
 
 
 def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, wandb, masks):
@@ -18,9 +18,20 @@ def export_final_results(args, dir, losses, mesh, mlp, network_input, vertices, 
             pred_normal = None
             for prompt, mlp_per_prompt in mlp.items():
                 pred_rgb_per_prompt, pred_normal_per_prompt = mlp_per_prompt(vertices)
-                pred_rgb_masked = pred_rgb_per_prompt*(1- masks[prompt])
-                pred_normal_masked = pred_normal_per_prompt*(1- masks[prompt])
-
+                inv_mask = 1 - masks[prompt]
+                if args.final_gaussian_blending:
+                    part_vertices = vertices[inv_mask[:, 0].bool()].detach()
+                    COM = torch.mean(part_vertices, dim=0)
+                    Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
+                    gauss_weight = gaussian3D(vertices, COM, Sigma)
+                    weight = torch.zeros_like(inv_mask)
+                    for i in range(weight.shape[1]):
+                        weight[:, i] = gauss_weight
+                else:
+                    weight = inv_mask
+                pred_rgb_masked = pred_rgb_per_prompt*weight
+                pred_normal_masked = pred_normal_per_prompt*weight
+                
                 if pred_rgb is not None:
                     pred_rgb += pred_rgb_masked
                 else:

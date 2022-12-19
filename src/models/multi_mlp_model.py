@@ -5,7 +5,7 @@ import kaolin as kal
 from src.models.extended_model import Text2MeshExtended
 from src.submodels.neural_style_field import NeuralStyleField
 from src.submodels.special_layers import MaskBackward
-from src.utils.utils import device
+from src.utils.utils import device, gaussian3D
 
 
 class Text2MeshMultiMLP(Text2MeshExtended):
@@ -31,8 +31,19 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         pred_normal = None
         for prompt, mlp in self.mlp.items():
             pred_rgb_per_prompt, pred_normal_per_prompt = mlp(vertices)
-            pred_rgb_masked = pred_rgb_per_prompt*(1- self.masks[prompt])
-            pred_normal_masked = pred_normal_per_prompt*(1- self.masks[prompt])
+            inv_mask = 1 - self.masks[prompt]
+            if self.args.gaussian_blending:
+                part_vertices = vertices[inv_mask[:, 0].bool()].detach()
+                COM = torch.mean(part_vertices, dim=0)
+                Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
+                gauss_weight = gaussian3D(vertices, COM, Sigma)
+                weight = torch.zeros_like(inv_mask)
+                for i in range(weight.shape[1]):
+                    weight[:, i] = gauss_weight
+            else:
+                weight = inv_mask
+            pred_rgb_masked = pred_rgb_per_prompt*weight
+            pred_normal_masked = pred_normal_per_prompt*weight
 
             if pred_rgb is not None:
                 pred_rgb += pred_rgb_masked
@@ -57,10 +68,20 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         rendered_images_per_prompt = None
         for prompt in self.args.prompts:
             inv_mask = 1 - self.masks[prompt]
+            if self.args.gaussian_blending:
+                part_vertices = vertices[inv_mask[:, 0].bool()].detach()
+                COM = torch.mean(part_vertices, dim=0)
+                Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
+                gauss_weight = gaussian3D(vertices, COM, Sigma)
+                weight = torch.zeros_like(inv_mask)
+                for i in range(weight.shape[1]):
+                    weight[:, i] = gauss_weight
+            else:
+                weight = inv_mask
             # Get stylized mesh
             if self.args.do_backward_masking:
-                pred_rgb_masked = self.mask_backward(pred_rgb, inv_mask)
-                pred_normal_masked = self.mask_backward(pred_normal, inv_mask)
+                pred_rgb_masked = self.mask_backward(pred_rgb, weight)
+                pred_normal_masked = self.mask_backward(pred_normal, weight)
                 
                 self.stylize_mesh(pred_rgb_masked, pred_normal_masked)
             else:
