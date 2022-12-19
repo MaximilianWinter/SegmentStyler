@@ -1,3 +1,4 @@
+from k3d.transform import process_transform_arguments
 import random
 import numpy as np
 import k3d
@@ -41,7 +42,6 @@ def visualize_pointclouds_parts_partglot(point_clouds, point_size=0.025, shift_v
     """
     print('Visualization rendering started...')
     
-    from k3d.transform import process_transform_arguments
     
     plot = k3d.plot(grid_visible=False)
 
@@ -71,6 +71,7 @@ def visualize_meshes(meshes_list):
     colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff]
     for i, mesh in enumerate(meshes_list):
         plt_mesh = k3d.mesh(mesh.vertices.astype(np.float32), mesh.faces.astype(np.uint32), color=colors[i%6])
+        plt_mesh = process_transform_arguments(plt_mesh, rotation=[np.pi, -2 * np.pi / 6, -4.5 * np.pi / 6, -5.5*np.pi/6])
         plot += plt_mesh
     plt_mesh.shader = '3d'
     plot.display()

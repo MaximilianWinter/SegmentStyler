@@ -4,15 +4,16 @@ import os.path as osp
 import trimesh
 import h5py
 from multiprocessing import Pool
-from partglot.utils.simple_utils import unpickle_data
+from src.partglot.utils.simple_utils import unpickle_data
+from src.helper.paths import BASELINES_PATH
 
 """
 Note that you need to make pairs of BSP-Net meshes and pointclouds have the same index order.
 Fill in the paths below:
 """
 GAME_DATA_PATH = "" # partglot game data path.
-BSP_DATA_DIR = "" # dir storing BSP-Net output meshes.
-PC_DATA_PATH = "" # path to the attached point cloud data.
+BSP_DATA_DIR = BASELINES_PATH / "BSP-NET-pytorch/samples/bsp_ae_out" # dir storing BSP-Net output meshes.
+PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_seg_chair/03001627_seg256.hdf5" # path to the attached point cloud data.
 OUTPUT_DIR = "" # dir to save outputs from this preprocessing code.
 
 def rotate_pointcloud(pc):
@@ -52,7 +53,8 @@ def padding_pointcloud(pc, max_num_points=512, seed=63):
     dup_pc = np.concatenate([orig_pc, dup_pc], 0)[:N]
     return dup_pc
 
-def load_pointcloud(pc_data, idx, num_points=2048):
+def load_pointcloud(idx, num_points=2048, res=64):
+    pc_data = h5py.File(PC_DATA_PATH)[f'points_{res}']
     pc = pc_data[idx][:num_points]
     pc = rotate_pointcloud(pc)
     pc_label = None
@@ -109,11 +111,11 @@ def load_bsp_mesh(idx):
     for i, g in enumerate(list(mesh.geometry.values())):
         new_mesh.append(g)
     new_mesh.reverse()
-    new_mesh = trimesh.scene(new_mesh)
+    new_mesh = trimesh.Scene(new_mesh)
     return new_mesh
 
-def load_pointcloud_bsp_mesh_pair(idx, num_points=2048):
-    pc, pc_label = load_pointcloud(idx, num_points)
+def load_pointcloud_bsp_mesh_pair(idx, num_points=2048, res=64):
+    pc, pc_label = load_pointcloud(idx, num_points, res)
     mesh = load_bsp_mesh(idx)
 
     return dict(pc=pc, mesh=mesh, pc_label=pc_label)
@@ -189,8 +191,8 @@ def reassign_pc_label_from(pc_label, sd, num_labels=4):
     mesh_label = assign_label_from_pc_to_primitive(pc_label, sd, num_labels)
     return assign_label_from_primitive_to_pc(mesh_label, sd)
 
-def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_num_points=512, max_num_segs=50):
-    out = load_pointcloud_bsp_mesh_pair(idx, num_points)
+def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_num_points=512, max_num_segs=50, res=64):
+    out = load_pointcloud_bsp_mesh_pair(idx, num_points, res)
     mesh, pc = out["mesh"], out["pc"]
 
     signed_distance = measure_signed_distance(mesh, pc) # [n_point, n_segs]
@@ -224,11 +226,13 @@ def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_n
         pc_in_segs.append(dummy)
         mask.append(0)
 
-    pc_in_segs = np.stack(pc_in_segs, 0) #[n_segs, max_num_points, 3]
+    mask = np.array(mask)
+    
+    # pc_in_segs = np.stack(pc_in_segs) #[n_segs, max_num_points, 3]
     num_segs = int((mask==1).sum())
-    pc_in_segs2 = pc_in_segs[:num_segs].reshape(-1, 3)
+    pc_in_segs2 = np.vstack(pc_in_segs[:num_segs]).reshape(-1, 3)
     pc_in_segs2 = normalize_pointcloud(pc_in_segs2, "sphere")
-    pc_in_segs2 = pc_in_segs2.reshape(num_segs, max_num_points, 3)
+    pc_in_segs2 = pc_in_segs2['pc'].reshape(num_segs, max_num_points, 3)
     pc_in_segs[:num_segs] = pc_in_segs2[:num_segs]
     
     mask = np.array(mask)
