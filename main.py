@@ -83,6 +83,7 @@ def get_parser():
     parser.add_argument('--use_initial_prediction', action="store_true", default=False)
     parser.add_argument('--round_renderer_gradients', action="store_true", default=False)
     parser.add_argument('--do_backward_masking', action="store_true", default=False)
+    parser.add_argument('--noisy_masks', action="store_true", default=False)
 
     return parser
 

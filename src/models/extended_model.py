@@ -77,6 +77,13 @@ class Text2MeshExtended(Text2MeshOriginal):
             for part in parts:
                 start, finish = mesh_metadata["mask_vertices"][part]
                 mask[start:finish] = 0
+                if self.args.noisy_masks:
+                    n_tot = mask.shape[0]
+                    n = finish-start
+                    random_zeros = torch.randint(0, n_tot, (n//5,))
+                    random_ones = torch.randint(0, n_tot, (n//5,))
+                    mask[random_zeros] = 0
+                    mask[random_ones] = 1
             masks[prompt] = mask
 
         return masks
