@@ -5,16 +5,16 @@ import trimesh
 import h5py
 from multiprocessing import Pool
 from src.partglot.utils.simple_utils import unpickle_data
-from src.helper.paths import BASELINES_PATH
+from src.helper.paths import BASELINES_PATH, LOCAL_DATA_PATH
 
 """
 Note that you need to make pairs of BSP-Net meshes and pointclouds have the same index order.
 Fill in the paths below:
 """
-GAME_DATA_PATH = "" # partglot game data path.
+GAME_DATA_PATH = LOCAL_DATA_PATH / "partglot_email/shapenet_chairs_only_in_game_10000.h5" # partglot game data path.
 BSP_DATA_DIR = BASELINES_PATH / "BSP-NET-pytorch/samples/bsp_ae_out" # dir storing BSP-Net output meshes.
 PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_seg_chair/03001627_seg256.hdf5" # path to the attached point cloud data.
-OUTPUT_DIR = "" # dir to save outputs from this preprocessing code.
+OUTPUT_DIR = LOCAL_DATA_PATH / "preprocess_bspnet" # dir to save outputs from this preprocessing code.
 
 def rotate_pointcloud(pc):
     # To align pointclouds to bspnet outputs
@@ -50,8 +50,8 @@ def padding_pointcloud(pc, max_num_points=512, seed=63):
     np.random.shuffle(rid)
     dup_pc = dup_pc[rid]
 
-    dup_pc = np.concatenate([orig_pc, dup_pc], 0)[:N]
-    return dup_pc
+    pad_pc = np.concatenate([orig_pc, dup_pc], 0)[:max_num_points]
+    return pad_pc
 
 def load_pointcloud(idx, num_points=2048, res=64):
     pc_data = h5py.File(PC_DATA_PATH)[f'points_{res}']
@@ -135,7 +135,7 @@ def save_scene(scene: trimesh.Scene, filename):
             for ii in range(len(f)):
                 fout.write("f ")
                 for jj in range(len(f[ii])):
-                    f.out.write(f"{f[ii][jj]+vbias} ")
+                    fout.write(f"{f[ii][jj]+vbias} ")
                 fout.write("\n")
 
 def measure_signed_distance(mesh: trimesh.Scene, pc):
@@ -228,9 +228,9 @@ def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_n
 
     mask = np.array(mask)
     
-    # pc_in_segs = np.stack(pc_in_segs) #[n_segs, max_num_points, 3]
+    pc_in_segs = np.stack(pc_in_segs, 0) #[n_segs, max_num_points, 3]
     num_segs = int((mask==1).sum())
-    pc_in_segs2 = np.vstack(pc_in_segs[:num_segs]).reshape(-1, 3)
+    pc_in_segs2 = pc_in_segs[:num_segs].reshape(-1, 3)
     pc_in_segs2 = normalize_pointcloud(pc_in_segs2, "sphere")
     pc_in_segs2 = pc_in_segs2['pc'].reshape(num_segs, max_num_points, 3)
     pc_in_segs[:num_segs] = pc_in_segs2[:num_segs]
