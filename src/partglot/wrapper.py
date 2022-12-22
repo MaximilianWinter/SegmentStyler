@@ -1,9 +1,19 @@
-from src.helper.visualization import visualize_pointclouds_parts_partglot
-from src.helper.visualization import get_rnd_color
-from src.partglot.utils.predict import get_loaded_model, extract_reference_sample, preprocess_point_cloud, ssegs2input, predict_ssegs2label, extract_pc2label, get_attn_mask_objects, segment_pc_with_labels
-from src.partglot.utils.processing import print_stats
-from src.helper.paths import LOCAL_MODELS_PATH, LOCAL_DATA_PATH
+import numpy as np
 import trimesh
+
+from src.helper.paths import LOCAL_DATA_PATH, LOCAL_MODELS_PATH
+from src.helper.visualization import (get_rnd_color,
+                                      visualize_pointclouds_parts_partglot)
+from src.partglot.utils.partglot_bspnet_preprocess import \
+    convert_supersegs_to_pointclouds_simple
+from src.partglot.utils.predict import (extract_pc2label,
+                                        extract_reference_sample,
+                                        get_attn_mask_objects,
+                                        get_loaded_model, predict_ssegs2label,
+                                        preprocess_point_cloud,
+                                        segment_pc_with_labels, ssegs2input)
+from src.partglot.utils.processing import print_stats
+
 
 class PartSegmenter():
     """
@@ -58,6 +68,11 @@ class PartSegmenter():
         self.final_mask, self.final_pc, self.label_ssegs = \
             self._dummy_run(mesh, cluster_tgt, use_sseg_gt=False, sample_idx=None)
         return self.final_mask, self.final_pc, self.label_ssegs
+    
+    def run_bspnet_data(self, bsp_idx:int) -> tuple:
+        self.final_mask, self.final_pc, self.label_ssegs = \
+            self._dummy_run(mesh=None, bsp_idx=bsp_idx, cluster_tgt=None, use_sseg_gt=False, sample_idx=None)
+        return self.final_mask, self.final_pc, self.label_ssegs
 
     def visualize_labels(self, opacity=0.25, point_size=0.015):
         print(f'## About to visualize part labels')
@@ -74,12 +89,12 @@ class PartSegmenter():
     def run_desinty_stats(self, use_sseg_gt=False):
         print_stats(self.final_pc, use_sseg_gt)
         
-    def _dummy_run(self, mesh, cluster_tgt, use_sseg_gt, sample_idx):
+    def _dummy_run(self, mesh, bsp_idx, cluster_tgt, use_sseg_gt, sample_idx):
         print("Starting to run...\n")
         self.use_sseg_gt = use_sseg_gt
         self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
         self.mesh = mesh if mesh else self.ref_sseg_data
-        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt)
+        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt, bsp_idx=bsp_idx)
         self.sseg_count = self.pc2sup_segs.max() + 1 
         self._set_predict_input(self.use_sseg_gt)
         self.sup_segs2label = self._predict_ssegs2label()
@@ -101,8 +116,13 @@ class PartSegmenter():
         else:
             return None, None
     
-    def _get_ssegs(self, batch_point_cloud, cluster_tgt="normals"):
-        return preprocess_point_cloud(batch_point_cloud, cluster_tgt=cluster_tgt)
+    def _get_ssegs(self, batch_point_cloud, cluster_tgt="normals", bsp_idx=None):
+        if bsp_idx is not None:
+            sup_segs = convert_supersegs_to_pointclouds_simple(bsp_idx, normalize=False)
+            pc2sup_segs = np.arange(sup_segs.shape[0])
+            return sup_segs, pc2sup_segs
+        else:
+            return preprocess_point_cloud(batch_point_cloud, cluster_tgt=cluster_tgt)
         
     def _set_predict_input(self, use_sseg_gt=False):
         if use_sseg_gt:

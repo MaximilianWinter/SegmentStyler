@@ -280,7 +280,7 @@ def resample_ssegs(sseg_pc, sseg_size=512, normalize=False, with_replacement=Tru
         if normalize:
             resampled_pc = normalize_pointcloud(resampled_pc, boundary="sphere")['pc']
         resampled_ssegs.append(resampled_pc)
-    return sseg_pc
+    return np.array(resampled_ssegs)
 
 def cluster_sseg_pointcloud(pointcloud, point_membership):
     seg_pc = {}

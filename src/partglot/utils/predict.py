@@ -47,7 +47,7 @@ def extract_reference_sample(h5_data, sample_idx=0):
 
 def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals", n_ssseg_custom=25, random_state=0):
     
-    print("Startint point cloud preprocessing (super segmentation)\n")
+    print("Starting point cloud preprocessing (super segmentation)\n")
     
     if cluster_tgt == "normals":
         cluster_tgt, coordinates = mesh.vertex_normals, mesh.vertices
