@@ -33,13 +33,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             pred_rgb_per_prompt, pred_normal_per_prompt = mlp(vertices)
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                part_vertices = vertices[inv_mask[:, 0].bool()].detach()
-                COM = torch.mean(part_vertices, dim=0)
-                Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
-                gauss_weight = gaussian3D(vertices, COM, Sigma)
-                weight = torch.zeros_like(inv_mask)
-                for i in range(weight.shape[1]):
-                    weight[:, i] = gauss_weight
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             pred_rgb_masked = pred_rgb_per_prompt*weight
@@ -69,13 +63,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         for prompt in self.args.prompts:
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                part_vertices = vertices[inv_mask[:, 0].bool()].detach()
-                COM = torch.mean(part_vertices, dim=0)
-                Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
-                gauss_weight = gaussian3D(vertices, COM, Sigma)
-                weight = torch.zeros_like(inv_mask)
-                for i in range(weight.shape[1]):
-                    weight[:, i] = gauss_weight
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             # Get stylized mesh

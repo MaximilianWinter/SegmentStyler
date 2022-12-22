@@ -49,9 +49,6 @@ class Trainer():
                 if isinstance(loss, torch.Tensor):
                     wandb.log({f"loss_{key}": loss.item()}, step=i)
                     return_dict[key] = loss.item()
-            try:
-                return_dict["masks"] = self.model.masks
-            except AttributeError:
-                return_dict["masks"] = None
+
             return return_dict
             

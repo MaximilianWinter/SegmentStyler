@@ -3,6 +3,7 @@ import jstyleson
 
 from src.submodels.special_layers import NumericsBackward
 from src.models.original_model import Text2MeshOriginal
+from src.utils.utils import gaussian3D
 
 
 class Text2MeshExtended(Text2MeshOriginal):
@@ -12,6 +13,7 @@ class Text2MeshExtended(Text2MeshOriginal):
         self.previous_pred_rgb = torch.zeros_like(self.default_color)
         self.initial_pred_rgb = None
         self.masks = self.load_masks()
+        self.gaussian_weights = self.get_gaussian_weights_from_masks(self.masks)
         self.num_backward = NumericsBackward.apply
 
     def forward(self, vertices):
@@ -87,3 +89,36 @@ class Text2MeshExtended(Text2MeshOriginal):
             masks[prompt] = mask
 
         return masks
+
+    def get_gaussian_weights_from_masks(self, masks):
+        """
+        @param masks: dict with prompts as keys and masks as keys
+        @returns: normalized_weights, dict of normalized gaussian weights
+        """
+        normalized_weights = {}
+        sum_of_weights = None
+
+        for prompt, mask in masks.items():
+            inv_mask = 1 - mask
+            part_vertices = self.base_mesh.vertices[inv_mask[:, 0].bool()].detach()
+
+            COM = torch.mean(part_vertices, dim=0)
+            Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
+            gauss_weight = gaussian3D(self.base_mesh.vertices, COM, Sigma)
+
+            weight = torch.zeros_like(inv_mask)
+            for i in range(weight.shape[1]):
+                weight[:, i] = gauss_weight
+            normalized_weights[prompt] = weight
+
+            if sum_of_weights is None:
+                sum_of_weights = weight.clone()
+            else:
+                sum_of_weights += weight
+        
+        for prompt in normalized_weights.keys():
+            normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[sum_of_weights != 0]
+
+        return normalized_weights
+
+
