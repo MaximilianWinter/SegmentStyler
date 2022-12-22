@@ -1,11 +1,14 @@
 import os
-import numpy as np
 import os.path as osp
-import trimesh
-import h5py
 from multiprocessing import Pool
-from src.partglot.utils.simple_utils import unpickle_data
+
+import h5py
+import numpy as np
+import trimesh
+
 from src.helper.paths import BASELINES_PATH, LOCAL_DATA_PATH
+from src.partglot.utils.processing import random_sample_array
+from src.partglot.utils.simple_utils import unpickle_data
 
 """
 Note that you need to make pairs of BSP-Net meshes and pointclouds have the same index order.
@@ -53,13 +56,12 @@ def padding_pointcloud(pc, max_num_points=512, seed=63):
     pad_pc = np.concatenate([orig_pc, dup_pc], 0)[:max_num_points]
     return pad_pc
 
-def load_pointcloud(idx, num_points=2048, res=64):
+def load_pointcloud(idx, num_points=None, res=64):
     h5_data = h5py.File(PC_DATA_PATH)
     pc_data = h5_data[f'points_{res}']
     mask = h5_data[f'values_{res}'][idx].astype(bool)
     mask = (np.ones((mask.shape[0], 3)) * mask).astype(bool)
-    # pc = pc_data[idx][:num_points]
-    pc = pc_data[idx][mask].reshape((-1, 3))[:]
+    pc = pc_data[idx][mask].reshape((-1, 3))[:num_points]
     pc = rotate_pointcloud(pc)
     pc_label = None
     return pc, pc_label
@@ -118,7 +120,7 @@ def load_bsp_mesh(idx):
     new_mesh = trimesh.Scene(new_mesh)
     return new_mesh
 
-def load_pointcloud_bsp_mesh_pair(idx, num_points=2048, res=64):
+def load_pointcloud_bsp_mesh_pair(idx, num_points=None, res=64):
     pc, pc_label = load_pointcloud(idx, num_points, res)
     mesh = load_bsp_mesh(idx)
 
@@ -195,7 +197,7 @@ def reassign_pc_label_from(pc_label, sd, num_labels=4):
     mesh_label = assign_label_from_pc_to_primitive(pc_label, sd, num_labels)
     return assign_label_from_primitive_to_pc(mesh_label, sd)
 
-def get_bsp_attrb(idx, num_points=2048*2, res=64):
+def get_bsp_attrb(idx, num_points=None, res=64):
     out = load_pointcloud_bsp_mesh_pair(idx, num_points, res)
     mesh, pc = out["mesh"], out["pc"]
 
@@ -205,7 +207,7 @@ def get_bsp_attrb(idx, num_points=2048*2, res=64):
     
     return dict(mesh=mesh, pc=pc, signed_distance=signed_distance, point_membership=point_membership)
  
-def convert_supersegs_to_pointclouds(idx, num_points=2048*2, remove_rare=10, max_num_points=512, max_num_segs=50, res=64, export=True):
+def convert_supersegs_to_pointclouds(idx, num_points=None, remove_rare=10, max_num_points=512, max_num_segs=50, res=64, export=True):
     bsp_attrb = get_bsp_attrb(idx, num_points, res)
     
     mesh, pc, point_membership, signed_distance = bsp_attrb['mesh'], bsp_attrb['pc'], bsp_attrb['point_membership'], bsp_attrb['signed_distance']
@@ -268,4 +270,30 @@ def convert_supersegs_to_pointclouds(idx, num_points=2048*2, remove_rare=10, max
     
     return dict(mesh=new_mesh, pc_in_segs=pc_in_segs, mask=mask, non_zero_pc_in_segs=non_zero_pc_in_segs, sd=new_signed_distance, pc2sup_segs=pc2sup_segs)
 
+def resample_ssegs(sseg_pc, sseg_size=512, normalize=False, with_replacement=True, min_sseg_size=10):
+    resampled_ssegs = []
+    for pc in sseg_pc:
+        pc_array = np.array(pc)
+        if pc_array.shape[0] < min_sseg_size:
+            continue
+        resampled_pc = random_sample_array(pc_array, size=sseg_size, with_replacement=with_replacement)
+        if normalize:
+            resampled_pc = normalize_pointcloud(resampled_pc, boundary="sphere")['pc']
+        resampled_ssegs.append(resampled_pc)
+    return sseg_pc
 
+def cluster_sseg_pointcloud(pointcloud, point_membership):
+    seg_pc = {}
+    for pc, pm in zip(pointcloud, point_membership):
+        if pm in seg_pc:
+            seg_pc[pm].append(pc)
+        else:
+            seg_pc[pm] = [pc]
+            
+    return seg_pc
+
+def convert_supersegs_to_pointclouds_simple(idx, sseg_size=512, normalize=False, num_points=None, res=64, with_replacement=True):
+    attr = get_bsp_attrb(idx, num_points=num_points, res=res)
+    sseg_pc = cluster_sseg_pointcloud(attr['pc'], attr['point_membership'])
+    resampled_seg_pc = resample_ssegs(sseg_pc.values(), normalize=normalize, sseg_size=sseg_size, with_replacement=with_replacement)
+    return resampled_seg_pc
