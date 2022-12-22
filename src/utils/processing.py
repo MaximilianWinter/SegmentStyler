@@ -13,6 +13,7 @@ from src.utils.trainer import Trainer
 from src.utils.export import export_final_results
 from src.utils.utils import report_process
 
+
 def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -22,14 +23,13 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     seed_everything(seed)
-    #torch.use_deterministic_algorithms(True)
+    # torch.use_deterministic_algorithms(True)
 
-def train(args, config, wand_proj='dl3d', team='meshers'):
-    
-    wandb.init(project=wand_proj,
-               config=args.__dict__,
-               entity=team)
-    
+
+def train(args, config, wand_proj="dl3d", team="meshers"):
+
+    wandb.init(project=wand_proj, config=args.__dict__, entity=team)
+
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
 
     # CREATE OUTPUT DIR
@@ -57,38 +57,51 @@ def train(args, config, wand_proj='dl3d', team='meshers'):
         text2mesh_model.mlp = torch.load(args.weights_path)
 
     # DEFINE OPTIMIZER
-    optimizer = torch.optim.Adam(text2mesh_model.mlp.parameters(), args.learning_rate, weight_decay=args.decay)
-    activate_scheduler = args.lr_decay < 1 and args.decay_step > 0 and not args.lr_plateau
+    optimizer = torch.optim.Adam(
+        text2mesh_model.mlp.parameters(), args.learning_rate, weight_decay=args.decay
+    )
+    activate_scheduler = (
+        args.lr_decay < 1 and args.decay_step > 0 and not args.lr_plateau
+    )
     if activate_scheduler:
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.decay_step, gamma=args.lr_decay)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=args.decay_step, gamma=args.lr_decay
+        )
     else:
         lr_scheduler = None
-    
+
     # DEFINE LOSS
     loss_func = config["loss"]
 
     # NETWORK INPUT
     vertices = copy.deepcopy(base_mesh.vertices)
-    network_input = copy.deepcopy(vertices)   
+    network_input = copy.deepcopy(vertices)
     if args.symmetry == True:
-        network_input[:,2] = torch.abs(network_input[:,2])
+        network_input[:, 2] = torch.abs(network_input[:, 2])
 
     if args.standardize == True:
         # Each channel into z-score
-        network_input = (network_input - torch.mean(network_input, dim=0))/torch.std(network_input, dim=0)
+        network_input = (network_input - torch.mean(network_input, dim=0)) / torch.std(
+            network_input, dim=0
+        )
 
     # TEXT PROMPT
     if not args.prompts:
         raise ValueError("No prompts given.")
-        
 
-    trainer = Trainer(text2mesh_model, network_input, args.prompts, optimizer, lr_scheduler, loss_func)
+    trainer = Trainer(
+        text2mesh_model, network_input, args.prompts, optimizer, lr_scheduler, loss_func
+    )
 
     losses = []
     loss_check = None
     for i in tqdm(range(args.n_iter)):
-        loss_dict = trainer.training_step(i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path)
-        loss = list(loss_dict.values())[0] # This is not really nice. At some point we should adapt report_process, etc.
+        loss_dict = trainer.training_step(
+            i, wandb=wandb, clipavg=args.clipavg, save_dir=log_path
+        )
+        loss = list(loss_dict.values())[
+            0
+        ]  # This is not really nice. At some point we should adapt report_process, etc.
         losses.append(loss)
 
         if i % 100 == 0:

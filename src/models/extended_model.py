@@ -73,7 +73,9 @@ class Text2MeshExtended(Text2MeshOriginal):
                 parts = ["leg_1", "leg_2", "leg_3", "leg_4"]
             else:
                 parts = [
-                    part for part in mesh_metadata["mask_vertices"].keys() if part in prompt
+                    part
+                    for part in mesh_metadata["mask_vertices"].keys()
+                    if part in prompt
                 ]
             mask = torch.ones_like(self.default_color)
             for part in parts:
@@ -81,9 +83,9 @@ class Text2MeshExtended(Text2MeshOriginal):
                 mask[start:finish] = 0
                 if self.args.noisy_masks:
                     n_tot = mask.shape[0]
-                    n = finish-start
-                    random_zeros = torch.randint(0, n_tot, (n//5,))
-                    random_ones = torch.randint(0, n_tot, (n//5,))
+                    n = finish - start
+                    random_zeros = torch.randint(0, n_tot, (n // 5,))
+                    random_ones = torch.randint(0, n_tot, (n // 5,))
                     mask[random_zeros] = 0
                     mask[random_ones] = 1
             masks[prompt] = mask
@@ -103,7 +105,11 @@ class Text2MeshExtended(Text2MeshOriginal):
             part_vertices = self.base_mesh.vertices[inv_mask[:, 0].bool()].detach()
 
             COM = torch.mean(part_vertices, dim=0)
-            Sigma = (part_vertices-COM).T@(part_vertices-COM)/(part_vertices.shape[0] - 1)
+            Sigma = (
+                (part_vertices - COM).T
+                @ (part_vertices - COM)
+                / (part_vertices.shape[0] - 1)
+            )
             gauss_weight = gaussian3D(self.base_mesh.vertices, COM, Sigma)
 
             weight = torch.zeros_like(inv_mask)
@@ -115,10 +121,10 @@ class Text2MeshExtended(Text2MeshOriginal):
                 sum_of_weights = weight.clone()
             else:
                 sum_of_weights += weight
-        
+
         for prompt in normalized_weights.keys():
-            normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[sum_of_weights != 0]
+            normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[
+                sum_of_weights != 0
+            ]
 
         return normalized_weights
-
-
