@@ -13,7 +13,7 @@ Fill in the paths below:
 """
 GAME_DATA_PATH = LOCAL_DATA_PATH / "partglot_email/shapenet_chairs_only_in_game_10000.h5" # partglot game data path.
 BSP_DATA_DIR = BASELINES_PATH / "BSP-NET-pytorch/samples/bsp_ae_out" # dir storing BSP-Net output meshes.
-PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_seg_chair/03001627_seg256.hdf5" # path to the attached point cloud data.
+PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_chair/03001627_vox256_img_test.hdf5" # path to the attached point cloud data.
 OUTPUT_DIR = LOCAL_DATA_PATH / "preprocess_bspnet" # dir to save outputs from this preprocessing code.
 
 def rotate_pointcloud(pc):
@@ -54,8 +54,12 @@ def padding_pointcloud(pc, max_num_points=512, seed=63):
     return pad_pc
 
 def load_pointcloud(idx, num_points=2048, res=64):
-    pc_data = h5py.File(PC_DATA_PATH)[f'points_{res}']
-    pc = pc_data[idx][:num_points]
+    h5_data = h5py.File(PC_DATA_PATH)
+    pc_data = h5_data[f'points_{res}']
+    mask = h5_data[f'values_{res}'][idx].astype(bool)
+    mask = (np.ones((mask.shape[0], 3)) * mask).astype(bool)
+    # pc = pc_data[idx][:num_points]
+    pc = pc_data[idx][mask].reshape((-1, 3))[:]
     pc = rotate_pointcloud(pc)
     pc_label = None
     return pc, pc_label
@@ -191,13 +195,20 @@ def reassign_pc_label_from(pc_label, sd, num_labels=4):
     mesh_label = assign_label_from_pc_to_primitive(pc_label, sd, num_labels)
     return assign_label_from_primitive_to_pc(mesh_label, sd)
 
-def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_num_points=512, max_num_segs=50, res=64):
+def get_bsp_attrb(idx, num_points=2048*2, res=64):
     out = load_pointcloud_bsp_mesh_pair(idx, num_points, res)
     mesh, pc = out["mesh"], out["pc"]
 
     signed_distance = measure_signed_distance(mesh, pc) # [n_point, n_segs]
     
     point_membership = np.argmax(signed_distance, 1)
+    
+    return dict(mesh=mesh, pc=pc, signed_distance=signed_distance, point_membership=point_membership)
+ 
+def convert_supersegs_to_pointclouds(idx, num_points=2048*2, remove_rare=10, max_num_points=512, max_num_segs=50, res=64, export=True):
+    bsp_attrb = get_bsp_attrb(idx, num_points, res)
+    
+    mesh, pc, point_membership, signed_distance = bsp_attrb['mesh'], bsp_attrb['pc'], bsp_attrb['point_membership'], bsp_attrb['signed_distance']
 
     pc_in_segs = []
     new_mesh = []
@@ -211,7 +222,8 @@ def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_n
         points = padding_pointcloud(points, max_num_points)
         pc_in_segs.append(points)
         new_mesh.append(g)
-        new_sd.append(signed_distance[i])
+        sd = padding_pointcloud(signed_distance[point_membership == i], max_num_points)
+        new_sd.append(sd)
     new_mesh = trimesh.Scene(new_mesh)
     new_signed_distance = np.stack(new_sd, 1)
 
@@ -237,42 +249,23 @@ def convert_supersegs_to_pointclouds(idx, num_points=2048, remove_rare=10, max_n
     
     mask = np.array(mask)
     
-    """ Re-save data after removing tiny super-segments. """
-    mesh_filename = f"{OUTPUT_DIR}/{idx}_new.obj"
-    save_scene(new_mesh, mesh_filename)
+    if export:
+        """ Re-save data after removing tiny super-segments. """
+        mesh_filename = f"{OUTPUT_DIR}/{idx}_new.obj"
+        save_scene(new_mesh, mesh_filename)
 
-    sd_filename = f"{OUTPUT_DIR}/{idx}_sd.txt"
-    save_signed_distance(idx, sd_filename)
+        sd_filename = f"{OUTPUT_DIR}/{idx}_sd.txt"
+        save_signed_distance(idx, sd_filename)
 
-    pc_in_segs_filename = f"{OUTPUT_DIR}/{idx}_pc_in_segs.npy"
-    np.save(pc_in_segs_filename, pc_in_segs)
+        pc_in_segs_filename = f"{OUTPUT_DIR}/{idx}_pc_in_segs.npy"
+        np.save(pc_in_segs_filename, pc_in_segs)
 
-    mask_filename = f"{OUTPUT_DIR}/{idx}_mask.npy"
-    np.save(mask_filename, mask)
+        mask_filename = f"{OUTPUT_DIR}/{idx}_mask.npy"
+        np.save(mask_filename, mask)
 
-    return dict(mesh=new_mesh, pc_in_segs=pc_in_segs, mask=mask, sd=new_signed_distance)
-
-if __name__ == "__main__":
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    game_data, word2int, int2word, int2sn, sn2int, sorted_sn = unpickle_data(GAME_DATA_PATH)
-
-    pool = Pool(processes=8)
-    result = pool.map_async(convert_supersegs_to_pointclouds, range(len(sorted_sn)))
-    result.get()
-    pool.close()
+    pc2sup_segs = np.arange(mask.sum()).astype(np.int32)
+    non_zero_pc_in_segs = pc_in_segs[mask.astype(bool)]
     
-    pc_list = []
-    mask_list = []
-    for idx in range(len(sorted_sn)):
-        pc = np.load(f"{OUTPUT_DIR}/{idx}_pc_in_segs.npy")
-        mask = np.load(f"{OUTPUT_DIR}/{idx}_mask.npy")
-        pc_list.append(pc)
-        mask_list.append(mask)
-    
-    PC = np.stack(pc_list, 0)
-    Mask = np.stack(mask_list, 0)
-    with h5py.File(f"{OUTPUT_DIR}/partglot_processed_data.h5", "w") as f:
-        f["data"] = PC
-        f["mask"] = mask
+    return dict(mesh=new_mesh, pc_in_segs=pc_in_segs, mask=mask, non_zero_pc_in_segs=non_zero_pc_in_segs, sd=new_signed_distance, pc2sup_segs=pc2sup_segs)
+
 

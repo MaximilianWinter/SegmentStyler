@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
- 
+
 def sort_arrays(arrays):
     ref_array = arrays[0]
     sorted_indices = ref_array.argsort()
