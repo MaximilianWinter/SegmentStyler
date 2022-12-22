@@ -66,7 +66,7 @@ class PartSegmenter():
                 label_ssegs (np.array): point cloud regrouped in part based labels
         """
         self.final_mask, self.final_pc, self.label_ssegs = \
-            self._dummy_run(mesh, cluster_tgt, use_sseg_gt=False, sample_idx=None)
+            self._dummy_run(mesh=mesh, cluster_tgt=cluster_tgt, use_sseg_gt=False, sample_idx=None)
         return self.final_mask, self.final_pc, self.label_ssegs
     
     def run_bspnet_data(self, bsp_idx:int) -> tuple:
@@ -89,7 +89,7 @@ class PartSegmenter():
     def run_desinty_stats(self, use_sseg_gt=False):
         print_stats(self.final_pc, use_sseg_gt)
         
-    def _dummy_run(self, mesh, bsp_idx, cluster_tgt, use_sseg_gt, sample_idx):
+    def _dummy_run(self, mesh=None, cluster_tgt=None, use_sseg_gt=False, sample_idx=None, bsp_idx=None):
         print("Starting to run...\n")
         self.use_sseg_gt = use_sseg_gt
         self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
@@ -118,7 +118,7 @@ class PartSegmenter():
     
     def _get_ssegs(self, batch_point_cloud, cluster_tgt="normals", bsp_idx=None):
         if bsp_idx is not None:
-            sup_segs = convert_supersegs_to_pointclouds_simple(bsp_idx, normalize=False)
+            sup_segs = convert_supersegs_to_pointclouds_simple(bsp_idx, normalize=True)
             pc2sup_segs = np.arange(sup_segs.shape[0])
             return sup_segs, pc2sup_segs
         else:

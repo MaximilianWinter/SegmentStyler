@@ -19,9 +19,9 @@ BSP_DATA_DIR = BASELINES_PATH / "BSP-NET-pytorch/samples/bsp_ae_out" # dir stori
 PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_chair/03001627_vox256_img_test.hdf5" # path to the attached point cloud data.
 OUTPUT_DIR = LOCAL_DATA_PATH / "preprocess_bspnet" # dir to save outputs from this preprocessing code.
 
-def rotate_pointcloud(pc):
+def rotate_pointcloud(pc, r=[[0,0,-1], [0,1,0], [-1,0,0.]]):
     # To align pointclouds to bspnet outputs
-    rot = np.array([[0,0,-1], [0,1,0], [-1,0,0.]])
+    rot = np.array(r)
     rot_pc = pc @ rot.transpose()
     return rot_pc
 
@@ -31,7 +31,7 @@ def normalize_pointcloud(pc, boundary="cube"):
         maxv, minv = np.max(pc, 0), np.min(pc,0)
         offset = minv
         pc = pc - offset
-        scale = np.sqrt(np.sum((maxv-  minv) ** 2))
+        scale = np.sqrt(np.sum((maxv - minv) ** 2))
         pc = pc / scale
     elif boundary == "sphere":
         offset = np.mean(pc, 0)
@@ -277,8 +277,6 @@ def resample_ssegs(sseg_pc, sseg_size=512, normalize=False, with_replacement=Tru
         if pc_array.shape[0] < min_sseg_size:
             continue
         resampled_pc = random_sample_array(pc_array, size=sseg_size, with_replacement=with_replacement)
-        if normalize:
-            resampled_pc = normalize_pointcloud(resampled_pc, boundary="sphere")['pc']
         resampled_ssegs.append(resampled_pc)
     return np.array(resampled_ssegs)
 
@@ -294,6 +292,9 @@ def cluster_sseg_pointcloud(pointcloud, point_membership):
 
 def convert_supersegs_to_pointclouds_simple(idx, sseg_size=512, normalize=False, num_points=None, res=64, with_replacement=True):
     attr = get_bsp_attrb(idx, num_points=num_points, res=res)
-    sseg_pc = cluster_sseg_pointcloud(attr['pc'], attr['point_membership'])
+    if normalize:
+        resampled_pc = normalize_pointcloud(attr['pc'], boundary="cube")['pc']
+        resampled_pc = rotate_pointcloud(resampled_pc)
+    sseg_pc = cluster_sseg_pointcloud(resampled_pc, attr['point_membership'])
     resampled_seg_pc = resample_ssegs(sseg_pc.values(), normalize=normalize, sseg_size=sseg_size, with_replacement=with_replacement)
     return resampled_seg_pc
