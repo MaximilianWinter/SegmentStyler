@@ -13,7 +13,7 @@ class Text2MeshExtended(Text2MeshOriginal):
         self.previous_pred_rgb = torch.zeros_like(self.default_color)
         self.initial_pred_rgb = None
         self.masks = self.load_masks()
-        self.gaussian_weights = self.get_gaussian_weights_from_masks(self.masks)
+        self.gaussian_weights, self.sigmas, self.coms = self.get_gaussian_weights_from_masks(self.masks)
         self.num_backward = NumericsBackward.apply
 
     def forward(self, vertices):
@@ -95,10 +95,12 @@ class Text2MeshExtended(Text2MeshOriginal):
     def get_gaussian_weights_from_masks(self, masks):
         """
         @param masks: dict with prompts as keys and masks as keys
-        @returns: normalized_weights, dict of normalized gaussian weights
+        @returns: tuple of normalized_weights, dict of normalized gaussian weights, sigmas and coms (both dicts)
         """
         normalized_weights = {}
         sum_of_weights = None
+        sigmas = {}
+        coms = {}
 
         for prompt, mask in masks.items():
             inv_mask = 1 - mask
@@ -122,9 +124,12 @@ class Text2MeshExtended(Text2MeshOriginal):
             else:
                 sum_of_weights += weight
 
+            sigmas[prompt] = Sigma
+            coms[prompt] = COM
+
         for prompt in normalized_weights.keys():
             normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[
                 sum_of_weights != 0
             ]
 
-        return normalized_weights
+        return normalized_weights, sigmas, coms
