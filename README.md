@@ -18,6 +18,7 @@ sh ./setup.sh
 2.1 Download data and models as of [here](Baselines/PartGlot/README.md) under `Data and pre-trained weights`
 2.2 Add data files to `data/partglot` folder
 2.3 Add and rename model under checkpoint to `models/partglot_pn_agnostic.ckpt`
+2.4 Install PartGlot dependencies of [here](Baselines/PartGlot/README.md) under `Dependencies`
 
 3. Activate environment.
 
