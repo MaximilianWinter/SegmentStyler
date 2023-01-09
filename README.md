@@ -13,23 +13,23 @@
 sh ./setup.sh
 ```
 
-1. Setup PartGlot 
+2. Setup PartGlot 
 
-1.1 Download data and models as of [here](Baselines/PartGlot/README.md) under `Data and pre-trained weights`
-1.2 Add data files to `data/partglot` folder
-1.3 Add and rename model under checkpoint to `models/partglot_pn_agnostic.ckpt`
+2.1 Download data and models as of [here](Baselines/PartGlot/README.md) under `Data and pre-trained weights`
+2.2 Add data files to `data/partglot` folder
+2.3 Add and rename model under checkpoint to `models/partglot_pn_agnostic.ckpt`
 
-2. Activate environment.
+3. Activate environment.
 
 ```bash
 conda activate dl3d
 ```
 
-3. Confirm Weights & Biases installation. More info: [click here](https://wandb.ai/quickstart/pytorch).
+4. Confirm Weights & Biases installation. More info: [click here](https://wandb.ai/quickstart/pytorch).
 
 ```bash
 pip install wandb
 wandb login
 ```
 
-4. Enjoy ;)
+5. Enjoy ;)
