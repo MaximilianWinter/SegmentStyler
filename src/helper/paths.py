@@ -20,3 +20,16 @@ BASELINES_PATH = root_path / 'Baselines'
 
 # global paths
 GLOBAL_DATA_PATH          = pl.Path('/mnt/hdd')
+
+
+pg2shapenet = {
+    40: {'mesh': "/mnt/hdd/ShapeNetCore.v2/03001627/88c39cf1485b497bfbb8cbddab1c2002/models/model_normalized.obj",
+         'labels': "/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points_label/88c39cf1485b497bfbb8cbddab1c2002.seg",
+         'pc': '/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points/88c39cf1485b497bfbb8cbddab1c2002.pts'},
+    55: {'mesh': "/mnt/hdd/ShapeNetCore.v2/03001627/c1b312919af633f8f51f77a6d7299806/models/model_normalized.obj",
+         'labels': "/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points_label/c1b312919af633f8f51f77a6d7299806.seg",
+         'pc': '/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points/c1b312919af633f8f51f77a6d7299806.pts'},
+    70: {'mesh': "/mnt/hdd/ShapeNetCore.v2/03001627/47eff1e5c09cec7435836c728d324152/models/model_normalized.obj",
+         'labels': "/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points_label/47eff1e5c09cec7435836c728d324152.seg",
+         'pc': '/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points/47eff1e5c09cec7435836c728d324152.pts'}
+}
