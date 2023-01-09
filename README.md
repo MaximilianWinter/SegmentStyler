@@ -15,15 +15,9 @@ sh ./setup.sh
 
 1. Setup PartGlot 
 
-2.1 Download input data as of [here](Baselines/PartGlot/README.md) under `Data and pre-trained weights`
-2.2 Pickle PartGlot Model
-
-```
-cd ./Baselines/PartGlot
-pip install -e .
-python pickle_model.py
-cd ../..
-```
+2.1 Download data and models as of [here](Baselines/PartGlot/README.md) under `Data and pre-trained weights`
+2.2 Add data files to `data/partglot` folder
+2.3 Add and rename model under checkpoint to `models/partglot_pn_agnostic.ckpt`
 
 1. Activate environment.
 
