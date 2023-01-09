@@ -7,16 +7,28 @@ from src.utils.utils import device
 
 
 class NeuralStyleField(nn.Module):
-    # Same base then split into two separate modules 
-    def __init__(self, sigma, depth, width, encoding, colordepth=2, normdepth=2, normratio=0.1, clamp=None,
-                 normclamp=None,niter=6000, input_dim=3, progressive_encoding=True, exclude=0):
+    # Same base then split into two separate modules
+    def __init__(self, args, input_dim=3):
         super(NeuralStyleField, self).__init__()
+        sigma = args.sigma
+        depth = args.depth
+        width = args.width
+        encoding = args.encoding
+        colordepth = args.colordepth
+        normdepth = args.normdepth
+        normratio = args.normratio
+        clamp = args.clamp
+        normclamp = args.normclamp
+        niter = args.n_iter
+        progressive_encoding = args.pe
+        exclude = args.exclude
+
         self.pe = ProgressiveEncoding(mapping_size=width, T=niter, d=input_dim)
         self.clamp = clamp
         self.normclamp = normclamp
         self.normratio = normratio
         layers = []
-        if encoding == 'gaussian':
+        if encoding == "gaussian":
             layers.append(FourierFeatureTransform(input_dim, width, sigma, exclude))
             if progressive_encoding:
                 layers.append(self.pe)
@@ -30,7 +42,7 @@ class NeuralStyleField(nn.Module):
             layers.append(nn.ReLU())
         self.base = nn.ModuleList(layers)
 
-        # Branches 
+        # Branches
         color_layers = []
         for _ in range(colordepth):
             color_layers.append(nn.Linear(width, width))
@@ -77,17 +89,14 @@ class NeuralStyleField(nn.Module):
         return colors, displ
 
 
-
 def save_model(model, loss, iter, optim, output_dir):
     save_dict = {
-        'iter': iter,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optim.state_dict(),
-        'loss': loss
+        "iter": iter,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optim.state_dict(),
+        "loss": loss,
     }
 
-    path = os.path.join(output_dir, 'checkpoint.pth.tar')
+    path = os.path.join(output_dir, "checkpoint.pth.tar")
 
     torch.save(save_dict, path)
-
-

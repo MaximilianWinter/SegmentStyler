@@ -8,6 +8,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
+
 def standardize_mesh(mesh):
     verts = mesh.vertices
     center = verts.mean(dim=0)
@@ -123,7 +124,9 @@ def add_vertices(mesh):
     vertex_normals = torch.cat([mesh.vertex_normals, torch.stack(new_vertex_normals)])
 
     if face_uvs is not None:
-        new_face_uvs = torch.vstack(new_face_uvs).unsqueeze(0).view(1, 3 * num_faces, 3, 2)
+        new_face_uvs = (
+            torch.vstack(new_face_uvs).unsqueeze(0).view(1, 3 * num_faces, 3, 2)
+        )
     new_faces = torch.vstack(new_faces)
 
     return new_vertices, new_faces, vertex_normals, new_face_uvs
@@ -171,9 +174,7 @@ def get_uv_assignment(num_faces):
     for i in range(M):
         px = 0
         for j in range(M):
-            uv_map[:, count] = torch.tensor([[px, py],
-                                             [px + 1, py],
-                                             [px + 1, py + 1]])
+            uv_map[:, count] = torch.tensor([[px, py], [px + 1, py], [px + 1, py + 1]])
             px += 2
             count += 1
             if count >= num_faces:
@@ -184,10 +185,14 @@ def get_uv_assignment(num_faces):
 
 
 def get_texture_visual(res, nt, mesh):
-    faces_vt = kal.ops.mesh.index_vertices_by_faces(mesh.vertices.unsqueeze(0), mesh.faces).squeeze(0)
+    faces_vt = kal.ops.mesh.index_vertices_by_faces(
+        mesh.vertices.unsqueeze(0), mesh.faces
+    ).squeeze(0)
 
     # as to not include encpoint, gen res+1 points and take first res
-    uv = torch.cartesian_prod(torch.linspace(-1, 1, res + 1)[:-1], torch.linspace(-1, 1, res + 1))[:-1].to(device)
+    uv = torch.cartesian_prod(
+        torch.linspace(-1, 1, res + 1)[:-1], torch.linspace(-1, 1, res + 1)
+    )[:-1].to(device)
     image = torch.zeros(res, res, 3).to(device)
     # image[:,:,:] = torch.tensor([0.0,1.0,0.0]).to(device)
     image = image.permute(2, 0, 1)
@@ -220,12 +225,15 @@ def get_texture_visual(res, nt, mesh):
 
     return image
 
+
 # Map vertices and subset of faces to 0-indexed vertices, keeping only relevant vertices
 def trimMesh(vertices, faces):
     unique_v = np.sort(np.unique(faces.flatten()))
     v_val = np.arange(len(unique_v))
     v_map = dict(zip(unique_v, v_val))
-    new_faces = np.array([v_map[i] for i in faces.flatten()]).reshape(faces.shape[0], faces.shape[1])
+    new_faces = np.array([v_map[i] for i in faces.flatten()]).reshape(
+        faces.shape[0], faces.shape[1]
+    )
     new_v = vertices[unique_v]
 
     return new_v, new_faces

@@ -11,7 +11,24 @@ def visualize_pointcloud(point_cloud, point_size=0.025, flip_axes=False, name='p
     plt_points.shader = '3d'
     plot.display()
 
-def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_vector=np.array([0,0,1])):
+def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_vector=np.array([0,0,1]), part_colors = None):
+    """
+    With batch_size = n, number of points = k.
+    :param point_clouds: list, len n, each element is an array of shape (k, 3)
+    :param labels: list, len n, each element is an array of shape (k, )
+    """
+    plot = k3d.plot(grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
+    if part_colors is None:
+        part_colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff]
+    for i, point_cloud in enumerate(point_clouds):
+        for label in np.unique(labels[i]):
+            plt_points = k3d.points(positions=(i*shift_vector + point_cloud[label == labels[i]]).astype(np.float32), point_size=point_size, color=part_colors[label])
+            plot += plt_points
+    
+    plt_points.shader = '3d'
+    plot.display()
+
+def visualize_pointclouds(point_clouds, point_size=0.025, shift_vector=np.array([0,0,1])):
     """
     With batch_size = n, number of points = k.
     :param point_clouds: list, len n, each element is an array of shape (k, 3)
@@ -20,9 +37,8 @@ def visualize_pointclouds_parts(point_clouds, labels, point_size=0.025, shift_ve
     plot = k3d.plot(grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
     part_colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff]
     for i, point_cloud in enumerate(point_clouds):
-        for label in np.unique(labels[i]):
-            plt_points = k3d.points(positions=(i*shift_vector + point_cloud[label == labels[i]]).astype(np.float32), point_size=point_size, color=part_colors[label])
-            plot += plt_points
+        plt_points = k3d.points((point_cloud).astype(np.float32), point_size=point_size, color=part_colors[i])
+        plot += plt_points
     
     plt_points.shader = '3d'
     plot.display()
