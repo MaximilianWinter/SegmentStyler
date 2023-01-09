@@ -3,6 +3,7 @@ import random
 import numpy as np
 import k3d
 from faker import Factory
+import matplotlib.pyplot as plt
 
 fake = Factory.create()
 get_rnd_color = lambda: int(fake.hex_color().replace('#', '0x'), 16)
@@ -70,8 +71,32 @@ def visualize_meshes(meshes_list):
     plot = k3d.plot(name='points', grid_visible=False, grid=(-0.55, -0.55, -0.55, 0.55, 0.55, 0.55))
     colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff]
     for i, mesh in enumerate(meshes_list):
-        plt_mesh = k3d.mesh(mesh.vertices.astype(np.float32), mesh.faces.astype(np.uint32), color=colors[i%6])
+        if isinstance(mesh, dict):
+            vertices, faces = mesh['vertices'].astype(np.float32), mesh['faces'].astype(np.uint32)
+        else:
+            vertices, faces = mesh.vertices.astype(np.float32), mesh.faces.astype(np.uint32)
+        plt_mesh = k3d.mesh(vertices, faces, color=colors[i%6])
         plt_mesh = process_transform_arguments(plt_mesh, rotation=[np.pi, -2 * np.pi / 6, -4.5 * np.pi / 6, -5.5*np.pi/6])
         plot += plt_mesh
     plt_mesh.shader = '3d'
     plot.display()
+    
+    
+    
+def plot_pointclouds(pointcloud_list, psize=0.01, elev=45, azim=-70, start_idx=0):
+    fig = plt.figure(figsize=(15,6))
+    num_pointclouds = len(pointcloud_list)
+    rows = int(num_pointclouds**0.5)
+    cols = int(num_pointclouds / rows)
+    if rows * cols < num_pointclouds:
+        cols += 1
+
+    for i, pointcloud in enumerate(pointcloud_list):
+        ax = fig.add_subplot(rows, cols, i+1, projection='3d')
+        ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], s=psize)
+        ax.set_axis_off()
+        ax.set_title(f'i={start_idx+i}')
+        ax.view_init(elev=elev, azim=azim)
+
+
+    plt.show()
