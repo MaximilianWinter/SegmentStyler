@@ -26,18 +26,12 @@ def set_seed(seed):
 
 def train(args, config, wand_proj='dl3d', team='meshers'):
     
-    # wandb.init(project=wand_proj,
-    #            config=args.__dict__,
-    #            entity=team)
+    wandb.init(project=wand_proj,
+               config=args.__dict__,
+               entity=team)
     
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
     
-    # # GET PARTGLOT ATTENTION MAPS
-    # partglot, partglot_dm = get_loaded_model(data_dir=args.partglot_data_dir, model_path=args.partglot_model_path)
-    # sup_segs2label, pc2label = partglot.get_attn_maps()[0]
-    # partglot_pc = partglot_dm.h5_data['data'][0]
-    # # todo: convert partglot_pc to .obj file https://stackoverflow.com/questions/54898657/i-want-to-generate-a-mesh-from-a-point-cloud-in-python
-
     # CREATE OUTPUT DIR
     created_directory = False
     i = 0
