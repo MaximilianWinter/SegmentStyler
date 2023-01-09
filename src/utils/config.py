@@ -5,7 +5,7 @@ def get_parser():
     parser = argparse.ArgumentParser()
 
     # Most relevant
-    parser.add_argument('--obj_path', type=str, default='data/processed/pc_convertion_test.obj')
+    parser.add_argument('--obj_path', type=str, default='data/chair_testmesh.obj')
     parser.add_argument('--prompts', action="append")
     parser.add_argument('--output_dir', type=str, default='output/')
 
@@ -67,9 +67,9 @@ def get_parser():
     # PartGlot
     parser.add_argument('--partglot_model_path', type=str, default="models/partglot_pn_agnostic.ckpt")
     parser.add_argument('--partglot_data_dir', type=str, default="data/partglot")
-
+    
     # Custom
-    parser.add_argument('--mask_path', type=str, default="models/chair_testmesh_mask.jsonc")
+    parser.add_argument('--mask_path', type=str, default="data/chair_testmesh_mask.jsonc")
     parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
@@ -81,5 +81,9 @@ def get_parser():
     parser.add_argument('--use_previous_prediction', action="store_true", default=False)
     parser.add_argument('--use_initial_prediction', action="store_true", default=False)
     parser.add_argument('--round_renderer_gradients', action="store_true", default=False)
+    parser.add_argument('--do_backward_masking', action="store_true", default=False)
+    parser.add_argument('--noisy_masks', action="store_true", default=False)
+    parser.add_argument('--gaussian_blending', action="store_true", default=False)
+    parser.add_argument('--final_gaussian_blending', action="store_true", default=False)
 
     return parser
