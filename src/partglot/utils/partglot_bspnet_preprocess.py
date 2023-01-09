@@ -270,7 +270,7 @@ def convert_supersegs_to_pointclouds(idx, num_points=None, remove_rare=10, max_n
     
     return dict(mesh=new_mesh, pc_in_segs=pc_in_segs, mask=mask, non_zero_pc_in_segs=non_zero_pc_in_segs, sd=new_signed_distance, pc2sup_segs=pc2sup_segs)
 
-def resample_ssegs(sseg_pc, sseg_size=512, normalize=False, with_replacement=True, min_sseg_size=10):
+def resample_ssegs(sseg_pc, sseg_size=512, with_replacement=True, min_sseg_size=10):
     resampled_ssegs = []
     for pc in sseg_pc:
         pc_array = np.array(pc)
@@ -290,11 +290,12 @@ def cluster_sseg_pointcloud(pointcloud, point_membership):
             
     return seg_pc
 
-def convert_supersegs_to_pointclouds_simple(idx, sseg_size=512, normalize=False, num_points=None, res=64, with_replacement=True):
+def convert_supersegs_to_pointclouds_simple(idx, sseg_size=512, normal_boundary="cube", num_points=None, res=64, with_replacement=True):
     attr = get_bsp_attrb(idx, num_points=num_points, res=res)
-    if normalize:
-        resampled_pc = normalize_pointcloud(attr['pc'], boundary="cube")['pc']
-        resampled_pc = rotate_pointcloud(resampled_pc)
-    sseg_pc = cluster_sseg_pointcloud(resampled_pc, attr['point_membership'])
-    resampled_seg_pc = resample_ssegs(sseg_pc.values(), normalize=normalize, sseg_size=sseg_size, with_replacement=with_replacement)
+    pc, point_membership = attr['pc'], attr['point_membership']
+    if normal_boundary:
+        pc = normalize_pointcloud(pc, boundary=normal_boundary)['pc']
+        pc = rotate_pointcloud(pc)
+    sseg_pc = cluster_sseg_pointcloud(pc, point_membership)
+    resampled_seg_pc = resample_ssegs(sseg_pc.values(), sseg_size=sseg_size, with_replacement=with_replacement)
     return resampled_seg_pc

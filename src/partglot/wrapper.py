@@ -111,14 +111,14 @@ class PartSegmenter():
         return get_loaded_model(data_dir=self.partglot_data_dir, model_path=self.partglot_model_path)
     
     def _load_partglot_ref(self, sample_idx):
-        if sample_idx:
+        if sample_idx is not None:
             return extract_reference_sample(self.partglot_dm.h5_data, sample_idx)
         else:
             return None, None
     
-    def _get_ssegs(self, batch_point_cloud, cluster_tgt="normals", bsp_idx=None):
+    def _get_ssegs(self, batch_point_cloud, normal_boundary="sphere", cluster_tgt="normals", bsp_idx=None):
         if bsp_idx is not None:
-            sup_segs = convert_supersegs_to_pointclouds_simple(bsp_idx, normalize=True)
+            sup_segs = convert_supersegs_to_pointclouds_simple(bsp_idx, normal_boundary=normal_boundary)
             pc2sup_segs = np.arange(sup_segs.shape[0])
             return sup_segs, pc2sup_segs
         else:
