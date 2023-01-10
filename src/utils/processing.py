@@ -31,7 +31,7 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     wandb.init(project=wand_proj, config=args.__dict__, entity=team)
 
     log_path_base = Path(config["log_dir"]).joinpath(args.output_dir)
-
+    
     # CREATE OUTPUT DIR
     created_directory = False
     i = 0
@@ -107,4 +107,12 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
         if i % 100 == 0:
             loss_check = report_process(args, i, loss, loss_check, losses)
 
+
     export_final_results(log_path, losses, text2mesh_model, wandb)
+
+def zip_arrays(left, right):
+    rows = []
+    for li, ri in zip(left, right):
+        row = np.concatenate([li,ri])
+        rows.append(row)
+    return np.array(rows)

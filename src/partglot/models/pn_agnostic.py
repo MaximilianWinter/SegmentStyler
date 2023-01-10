@@ -1,16 +1,16 @@
 import os
-from partglot.utils.simple_utils import get_iou_per_instance_per_part
+from src.partglot.utils.simple_utils import get_iou_per_instance_per_part
 import numpy as np
 import torch
 import pytorch_lightning as pl
 import os.path as osp
 
 from torch.utils.data.dataloader import DataLoader
-from partglot.modules.encoders import LSTM, SupSegsEncoder, CrossAttention, MLP
-from partglot.datamodules.datasets.partglot_dataset import PartglotTestDataset
-from partglot.utils.losses import smoothed_cross_entropy
-from partglot.utils.neural_utils import PolyDecayScheduler, tokenizing
-from partglot.datamodules.data_utils import part_names
+from src.partglot.modules.encoders import LSTM, SupSegsEncoder, CrossAttention, MLP
+from src.partglot.datamodules.datasets.partglot_dataset import PartglotTestDataset
+from src.partglot.utils.losses import smoothed_cross_entropy
+from src.partglot.utils.neural_utils import PolyDecayScheduler, tokenizing
+from src.partglot.datamodules.data_utils import part_names
 
 
 class PNAgnostic(pl.LightningModule):

@@ -12,6 +12,13 @@ wandb/*
 Baselines/CLIP-Mesh/output/*
 Baselines/text2mesh/results/*
 condaenv*
+models/*
+!/**/.gitkeep
+Baselines/BSP-NET-pytorch/data/*
+Baselines/BSP-NET-pytorch/samples/*
+Baselines/BSP-NET-pytorch/bspt.c
+*sandbox.ipynb
+*sandbox.py
 
 
 #PartGlot specific

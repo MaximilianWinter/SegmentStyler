@@ -3,6 +3,9 @@ import pymeshlab
 import numpy as np
 from pathlib import Path
 import json
+import torch
+from chamferdist import ChamferDistance
+from tqdm import tqdm
 
 
 def remesh_per_part(obj_path, save_path, remesh_iterations=6):
@@ -67,3 +70,23 @@ def remesh_per_part(obj_path, save_path, remesh_iterations=6):
             },
             fp,
         )
+
+
+
+chamferDist = ChamferDistance()
+
+def chamfer_dist(src_pc:np.array, dst_pc:np.array, bidirectional=True, boundary="cude"):
+    """noramlize pointcloud before feeding here"""
+    assert src_pc.shape[0] != 1 and dst_pc.shape[0] != 1
+    src = torch.from_numpy(src_pc).cuda().unsqueeze(0).float()
+    dst = torch.from_numpy(dst_pc).cuda().unsqueeze(0).float()
+    dist_forward = chamferDist(src, dst, bidirectional=bidirectional)
+    return dist_forward.detach().cpu().item()
+
+
+def get_pc_distances(src_pc, pc_list):
+    out = []
+    for i,dst_pc in tqdm(enumerate(pc_list)):
+        cd = chamfer_dist(src_pc, dst_pc)
+        out.append((i, cd))
+    return out
