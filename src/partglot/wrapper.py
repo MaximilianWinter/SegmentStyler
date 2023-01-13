@@ -20,6 +20,7 @@ class PartSegmenter():
     Class wrapper to handle full part segmentation pipeline
     """
     def __init__(self,
+                 part_names=["back", "seat", "leg", "arm"],
                  sseg_count=25,
                  partglot_data_dir=LOCAL_DATA_PATH / "partglot",
                  partglot_model_path=LOCAL_MODELS_PATH / "partglot_pn_agnostic.ckpt"):
@@ -29,6 +30,7 @@ class PartSegmenter():
         self.sseg_cmap = [get_rnd_color() for i in range(1000)]
         self.sseg_count = sseg_count
         self.use_sseg_gt = False
+        self.part_names = part_names
         print(f"PartSegmenter initialized with\n- sseg_count: {sseg_count}\n- partglot_data_dir: {partglot_data_dir}\n- partglot_model_path: {partglot_model_path}\n")
         
     def run_from_ref_data(self, sample_idx:int, use_sseg_gt:bool=True, cluster_tgt:str="vertices") -> tuple:
@@ -38,18 +40,19 @@ class PartSegmenter():
             Parameters:
                 sample_idx (int): sample index from CiC BSP-Net Dataset to be run
                 use_sseg_gt (bool): defines if super segments should be used from 
-                BSP-Net groud truth or reclustered (with K-Means or DBSCAN)
+                BSP-Net groud truth (True) or reclustered using cluster_tgt (False)
+                !! NOTE: this ignores "cluster_tgt" if True !!
                 cluster_tgt (str): clustering reference propertyfrom input mesh
                 ("normals" | "vertices" | "vertices_and_normals") 
                 
             Returns:
-                final_mask (dict): attn maps in our format
-                final_pc (np.array): point cloud reordered to map final_mask indices
-                label_ssegs (np.array): point cloud regrouped in part based labels
+                partmap_idx_ranges (dict): part maps in our format (.jsonc)
+                reordered_pc (np.array): point cloud reordered to map `partmap_idx_ranges` indices
+                partmaps (np.array): point cloud regrouped in part-based labels
         """
-        self.final_mask, self.final_pc, self.label_ssegs = \
+        self.partmap_idx_ranges, self.reordered_pc, self.partmaps = \
             self._dummy_run(mesh=None, cluster_tgt=cluster_tgt, use_sseg_gt=use_sseg_gt, sample_idx=sample_idx)
-        return self.final_mask, self.final_pc, self.label_ssegs
+        return self.partmap_idx_ranges, self.reordered_pc, self.partmaps
     
     def run_from_trimesh(self, mesh:trimesh.Trimesh, cluster_tgt:str="normals") -> tuple:
         """
@@ -61,22 +64,33 @@ class PartSegmenter():
                 ("normals" | "vertices" | "vertices_and_normals") 
                 
             Returns:
-                final_mask (dict): attn maps in our format
-                final_pc (np.array): point cloud reordered to map final_mask indices
-                label_ssegs (np.array): point cloud regrouped in part based labels
+                partmap_idx_ranges (dict): part maps in our format (.jsonc)
+                reordered_pc (np.array): point cloud reordered to map `partmap_idx_ranges` indices
+                partmaps (np.array): point cloud regrouped in part-based labels
         """
-        self.final_mask, self.final_pc, self.label_ssegs = \
+        self.partmap_idx_ranges, self.reordered_pc, self.partmaps = \
             self._dummy_run(mesh=mesh, cluster_tgt=cluster_tgt, use_sseg_gt=False, sample_idx=None)
-        return self.final_mask, self.final_pc, self.label_ssegs
+        return self.partmap_idx_ranges, self.reordered_pc, self.partmaps
     
     def run_bspnet_data(self, bsp_idx:int) -> tuple:
-        self.final_mask, self.final_pc, self.label_ssegs = \
+        """
+        Returns a segmented point cloud based on BSP-Net index (from BSP-Net input dataset)
+            
+            Parameters:
+                bsp_idx (int): BSP-Net input dataset index
+                
+            Returns:
+                partmap_idx_ranges (dict): part maps in our format (.jsonc)
+                reordered_pc (np.array): point cloud reordered to map `partmap_idx_ranges` indices
+                partmaps (np.array): point cloud regrouped in part-based labels
+        """
+        self.partmap_idx_ranges, self.reordered_pc, self.partmaps = \
             self._dummy_run(mesh=None, bsp_idx=bsp_idx, cluster_tgt=None, use_sseg_gt=False, sample_idx=None)
-        return self.final_mask, self.final_pc, self.label_ssegs
+        return self.partmap_idx_ranges, self.reordered_pc, self.partmaps
 
     def visualize_labels(self, opacity=0.25, point_size=0.015):
         print(f'## About to visualize part labels')
-        visualize_pointclouds_parts_partglot(self.label_ssegs, names=list(self.final_mask['mask_vertices'].keys()), part_colors=self.label_cmap, opacity=opacity, point_size=point_size)
+        visualize_pointclouds_parts_partglot(self.partmaps, names=list(self.partmap_idx_ranges['mask_vertices'].keys()), part_colors=self.label_cmap, opacity=opacity, point_size=point_size)
 
     def visualize_ssegs(self, opacity=0.25, point_size=0.015):
         print(f'## About to visualize super segments - self.use_sseg_gt={self.use_sseg_gt}')
@@ -87,7 +101,7 @@ class PartSegmenter():
         visualize_pointclouds_parts_partglot(self.ref_sseg_data[0][0].cpu().numpy(), part_colors=self.sseg_cmap, opacity=opacity, point_size=point_size)
 
     def run_desinty_stats(self, use_sseg_gt=False):
-        print_stats(self.final_pc, use_sseg_gt)
+        print_stats(self.reordered_pc, use_sseg_gt)
         
     def _dummy_run(self, mesh=None, cluster_tgt=None, use_sseg_gt=False, sample_idx=None, bsp_idx=None):
         print("Starting to run...\n")
@@ -99,12 +113,12 @@ class PartSegmenter():
         self._set_predict_input(self.use_sseg_gt)
         self.sup_segs2label = self._predict_ssegs2label()
         self.pc2label = self._get_pc2label()
-        self.final_mask, self.final_pc = self._get_attn_map_objects() 
-        self.label_ssegs = self._get_label_ssegs()
+        self.partmap_idx_ranges, self.reordered_pc = self._get_attn_map_objects() 
+        self.partmaps = self._get_label_ssegs()
         self.run_desinty_stats(self.use_sseg_gt)
         print(f"Successfully ran part segmentation with use_sseg_gt={self.use_sseg_gt}\n")
 
-        return self.final_mask, self.final_pc, self.label_ssegs
+        return self.partmap_idx_ranges, self.reordered_pc, self.partmaps
 
     
     def _load_partglot(self):
@@ -133,7 +147,7 @@ class PartSegmenter():
             self.ssegs_batch, self.mask_batch = ssegs2input(self.sup_segs)
             
     def _predict_ssegs2label(self):
-        return predict_ssegs2label(self.ssegs_batch, self.mask_batch, self.partglot_dm.word2int, self.partglot)
+        return predict_ssegs2label(self.ssegs_batch, self.mask_batch, self.partglot_dm.word2int, self.partglot, self.part_names)
     
     def _get_pc2label(self):
         return extract_pc2label(self.sup_segs2label)
@@ -142,5 +156,5 @@ class PartSegmenter():
         return get_attn_mask_objects(self.ssegs_batch, self.pc2label) 
         
     def _get_label_ssegs(self):
-        return segment_pc_with_labels(self.final_pc, self.final_mask)
+        return segment_pc_with_labels(self.reordered_pc, self.partmap_idx_ranges)
         
