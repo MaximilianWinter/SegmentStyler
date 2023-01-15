@@ -46,7 +46,18 @@ class PreprocessedShapeNet(torch.utils.data.Dataset):
 
     @staticmethod
     def move_batch_to_device(batch, device):
-        raise NotImplementedError
+        batch["masks"] = {
+            key: batch["masks"][key].to(device) for key in batch["masks"].keys()
+        }
+        batch["weights"] = {
+            key: batch["weights"][key].to(device) for key in batch["weights"].keys()
+        }
+        batch["sigmas"] = {
+            key: batch["sigmas"][key].to(device) for key in batch["sigmas"].keys()
+        }
+        batch["coms"] = {
+            key: batch["coms"][key].to(device) for key in batch["coms"].keys()
+        }
 
     @staticmethod
     def get_mesh(synset_id, item_id):
@@ -70,7 +81,9 @@ class PreprocessedShapeNet(torch.utils.data.Dataset):
 
         masks = {}
         for prompt in prompts:
-            if ("legs" in prompt) and ("legs" not in mesh_metadata["mask_vertices"].keys()):
+            if ("legs" in prompt) and (
+                "legs" not in mesh_metadata["mask_vertices"].keys()
+            ):
                 parts = ["leg_1", "leg_2", "leg_3", "leg_4"]
             else:
                 parts = [
