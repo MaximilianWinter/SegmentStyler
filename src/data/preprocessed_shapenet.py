@@ -51,8 +51,10 @@ class PreprocessedShapeNet(torch.utils.data.Dataset):
     @staticmethod
     def get_mesh(synset_id, item_id):
         mesh = Mesh(
-            PreprocessedShapeNet.dataset_path.joinpath(
-                f"{synset_id}/{item_id}/mesh.obj"
+            str(
+                PreprocessedShapeNet.dataset_path.joinpath(
+                    f"{synset_id}/{item_id}/mesh.obj"
+                )
             )
         )
         return mesh
@@ -68,7 +70,7 @@ class PreprocessedShapeNet(torch.utils.data.Dataset):
 
         masks = {}
         for prompt in prompts:
-            if "legs" in prompt:
+            if ("legs" in prompt) and ("legs" not in mesh_metadata["mask_vertices"].keys()):
                 parts = ["leg_1", "leg_2", "leg_3", "leg_4"]
             else:
                 parts = [
@@ -76,7 +78,7 @@ class PreprocessedShapeNet(torch.utils.data.Dataset):
                     for part in mesh_metadata["mask_vertices"].keys()
                     if part in prompt
                 ]
-            mask = torch.zeros(len(mesh.vertices), 3)
+            mask = torch.ones(len(mesh.vertices), 3)
             for part in parts:
                 start, finish = mesh_metadata["mask_vertices"][part]
                 mask[start:finish] = 0
