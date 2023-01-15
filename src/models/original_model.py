@@ -12,7 +12,7 @@ from src.utils.utils import device
 
 
 class Text2MeshOriginal(nn.Module):
-    def __init__(self, args, base_mesh):
+    def __init__(self, args, data_dict):
         super().__init__()
         self.args = args
 
@@ -33,6 +33,7 @@ class Text2MeshOriginal(nn.Module):
 
         #### OTHER ####
         # Mesh
+        base_mesh = data_dict["mesh"]
         self.base_mesh = base_mesh
         self.base_mesh_vertices = copy.deepcopy(base_mesh.vertices)
 

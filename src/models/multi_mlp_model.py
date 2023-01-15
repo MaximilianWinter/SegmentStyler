@@ -9,8 +9,8 @@ from src.utils.utils import device, gaussian3D
 
 
 class Text2MeshMultiMLP(Text2MeshExtended):
-    def __init__(self, args, base_mesh):
-        super().__init__(args, base_mesh)
+    def __init__(self, args, data_dict):
+        super().__init__(args, data_dict)
 
         self.mlp = None
         mlp_dict = {}
