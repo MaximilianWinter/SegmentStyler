@@ -7,6 +7,7 @@ import trimesh
 from src.data.mesh import Mesh
 from src.partglot.wrapper import PartSegmenter
 from src.utils.utils import gaussian3D, device
+from src.partglot.utils.partglot_bspnet_preprocess import normalize_pointcloud
 
 
 class PartGlotData(torch.utils.data.Dataset):
@@ -33,7 +34,9 @@ class PartGlotData(torch.utils.data.Dataset):
     def __getitem__(self, index):
         pg_id, synset_id, item_id = self.items[index].split("/")
         mesh = PartGlotData.get_mesh(synset_id, item_id)
-        masks = PartGlotData.get_masks(mesh, synset_id, item_id, int(pg_id), self.prompts)
+        masks, labels, tri_mesh = PartGlotData.get_masks(
+            mesh, synset_id, item_id, int(pg_id), self.prompts
+        )
         weights, sigmas, coms = PartGlotData.get_gaussian_weights(mesh, masks)
         return {
             "name": f"{synset_id}-{item_id}",
@@ -42,6 +45,8 @@ class PartGlotData(torch.utils.data.Dataset):
             "weights": weights,
             "sigmas": sigmas,
             "coms": coms,
+            "labels": labels,
+            "tri_mesh": tri_mesh,
         }
 
     @staticmethod
@@ -62,14 +67,19 @@ class PartGlotData(torch.utils.data.Dataset):
     @staticmethod
     def get_mesh(synset_id, item_id):
         mesh = Mesh(
-            str(PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")), use_trimesh=True
+            str(PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")),
+            use_trimesh=True,
         )
         return mesh
 
     @staticmethod
     def get_masks(mesh, synset_id, item_id, pg_id, prompts):
-        with open(PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")) as fp:
-            mesh_dict = trimesh.exchange.obj.load_obj(fp, include_color=False, include_texture=False)
+        with open(
+            PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")
+        ) as fp:
+            mesh_dict = trimesh.exchange.obj.load_obj(
+                fp, include_color=False, include_texture=False
+            )
             tri_mesh = trimesh.Trimesh(**mesh_dict)
         part_names = ["back", "seat", "leg", "arm"]
         ps = PartSegmenter(
@@ -95,12 +105,10 @@ class PartGlotData(torch.utils.data.Dataset):
                         np.ones_like(unique_array, dtype=int) * label_mapping[pn],
                     ]
                 )
-        print("Start registration...")
-        mesh_to_other, cost = trimesh.registration.mesh_other(tri_mesh, pg_pc, scale=True)
-        print("Finished registration.")
-        tri_mesh.apply_transform(mesh_to_other)
-        p2 = torch.tensor(pg_pc).unsqueeze(0).to(device)
-        p1 = torch.tensor(tri_mesh.vertices).unsqueeze(0).to(device)
+        normalized_pg_pc = normalize_pointcloud(pg_pc)["pc"]
+        normalized_vertices = normalize_pointcloud(tri_mesh.vertices)["pc"]
+        p2 = torch.tensor(normalized_pg_pc).unsqueeze(0).to(device)
+        p1 = torch.tensor(normalized_vertices).unsqueeze(0).to(device)
         _, indices = sided_distance(p1, p2)
         labels = pg_labels[indices.cpu()][0, :, 0]
 
@@ -115,7 +123,7 @@ class PartGlotData(torch.utils.data.Dataset):
                 mask[labels == label_mapping[part]] = 0
             masks[prompt] = mask
 
-        return masks
+        return masks, labels, tri_mesh
 
     @staticmethod
     def get_gaussian_weights(mesh, masks):
