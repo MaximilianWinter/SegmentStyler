@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from sklearn.cluster import KMeans, DBSCAN, SpectralClustering
 
 from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
@@ -31,7 +30,7 @@ def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", ba
             measure_iou_every_epoch=True,
             save_pred_label_every_epoch=False)
 
-    ckpt = torch.load(model_path)
+    ckpt = torch.load(model_path, map_location="cpu")
     if "state_dict" in ckpt:
         # print("write state dict")
         ckpt = ckpt["state_dict"]
@@ -59,14 +58,17 @@ def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals",
         raise NotImplementedError
     
     if cluster_method == "dbscan":
+        from sklearn.cluster import DBSCAN
         clusterizer  = DBSCAN(eps=1.25)
     elif cluster_method == "kmeans":
+        from sklearn.cluster import KMeans
         clusterizer = KMeans(n_clusters=n_ssseg_custom, random_state=0)
     elif cluster_method == "spectral_clustering":
+        from sklearn.cluster import SpectralClustering
         clusterizer = SpectralClustering(n_clusters=n_ssseg_custom, random_state=0)
     else:
         raise NotImplementedError
-    
+        
     pc2sup_segs_kmeans = clusterizer.fit(cluster_tgt).labels_
     sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, coordinates)
     
