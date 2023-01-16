@@ -5,6 +5,7 @@ from src.utils.config import get_parser
 from src.models import *
 from src.utils.loss import *
 from src.data.preprocessed_shapenet import PreprocessedShapeNet
+from src.data.partglot_data import PartGlotData
 
 
 if __name__ == "__main__":

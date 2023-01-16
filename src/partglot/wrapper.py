@@ -108,8 +108,9 @@ class PartSegmenter():
         self.use_sseg_gt = use_sseg_gt
         self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
         self.mesh = mesh if mesh else self.ref_sseg_data
-        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt, bsp_idx=bsp_idx)
-        self.sseg_count = self.pc2sup_segs.max() + 1 
+        if not use_sseg_gt:
+            self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt, bsp_idx=bsp_idx)
+            self.sseg_count = self.pc2sup_segs.max() + 1 
         self._set_predict_input(self.use_sseg_gt)
         self.sup_segs2label = self._predict_ssegs2label()
         self.pc2label = self._get_pc2label()
