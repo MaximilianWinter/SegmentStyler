@@ -31,7 +31,7 @@ prepros_sn_pc = [
 
 pg_idx_to_shapenet_idx = {}
 all_dists = []
-for i, src_pc in enumerate(tqdm(segs_data[:5])):
+for i, src_pc in enumerate(tqdm(segs_data)):
     n_src = normalize_pointcloud(vstack2dim(src_pc))["pc"]
     pc_dists = get_pc_distances(n_src, prepros_sn_pc)
     closest_pc = min(pc_dists, key=lambda t: t[1])
