@@ -2,26 +2,31 @@ from pathlib import Path
 import torch
 import numpy as np
 from kaolin.metrics.pointcloud import sided_distance
-import trimesh
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from src.data.mesh import Mesh
 from src.partglot.wrapper import PartSegmenter
 from src.utils.utils import gaussian3D, device
 from src.partglot.utils.partglot_bspnet_preprocess import normalize_pointcloud
+from src.helper.preprocessing import remesh_per_part
 
 
 class PartGlotData(torch.utils.data.Dataset):
-    dataset_path = Path("data/partglot_data")
+    dataset_path = Path("/mnt/hdd/PartGlotData")
+    shapenet_path = Path("/mnt/hdd/ShapeNetCore.v2")
+    label_mapping = {"back": 0, "seat": 1, "leg": 2, "arm": 3}
+    rev_label_mapping = {0: "back", 1: "seat", 2: "leg", 3: "arm"}
+    label_color = {0: "r", 1: "g", 2: "b", 3: "m"}
 
-    def __init__(self, prompts, noisy=False):
+    def __init__(self, prompts, *args, **kwargs):
         """
         Constructor.
         @param prompts: list of strings, the prompts
-        @param noisy: boolean, not used
         """
         super().__init__()
         self.items = (
-            PartGlotData.dataset_path.joinpath("data_mapping.txt")
+            PartGlotData.dataset_path.joinpath("data_mapping_chair_bsp.txt")
             .read_text()
             .splitlines()
         )
@@ -34,7 +39,7 @@ class PartGlotData(torch.utils.data.Dataset):
     def __getitem__(self, index):
         pg_id, synset_id, item_id = self.items[index].split("/")
         mesh = PartGlotData.get_mesh(synset_id, item_id)
-        masks, labels, tri_mesh = PartGlotData.get_masks(
+        masks, labels = PartGlotData.get_masks(
             mesh, synset_id, item_id, int(pg_id), self.prompts
         )
         weights, sigmas, coms = PartGlotData.get_gaussian_weights(mesh, masks)
@@ -46,7 +51,6 @@ class PartGlotData(torch.utils.data.Dataset):
             "sigmas": sigmas,
             "coms": coms,
             "labels": labels,
-            "tri_mesh": tri_mesh,
         }
 
     @staticmethod
@@ -66,47 +70,62 @@ class PartGlotData(torch.utils.data.Dataset):
 
     @staticmethod
     def get_mesh(synset_id, item_id):
+        mesh_path = PartGlotData.dataset_path.joinpath(
+            f"{synset_id}/{item_id}/mesh.obj"
+        )
+        if not mesh_path.exists():
+            print("Do remeshing...")
+            shapenet_mesh_path = PartGlotData.shapenet_path.joinpath(
+                f"{synset_id}/{item_id}/models/model_normalized.obj"
+            )
+            remesh_per_part(shapenet_mesh_path, mesh_path, remesh_iterations=5)
+            print("Finished remeshing.")
+
         mesh = Mesh(
             str(PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")),
-            use_trimesh=True,
+            use_trimesh=False,
         )
         return mesh
 
     @staticmethod
     def get_masks(mesh, synset_id, item_id, pg_id, prompts):
-        with open(
-            PartGlotData.dataset_path.joinpath(f"{synset_id}/{item_id}/mesh.obj")
-        ) as fp:
-            mesh_dict = trimesh.exchange.obj.load_obj(
-                fp, include_color=False, include_texture=False
-            )
-            tri_mesh = trimesh.Trimesh(**mesh_dict)
-        part_names = ["back", "seat", "leg", "arm"]
+        part_names = []
+        for part in PartGlotData.label_mapping.keys():
+            for prompt in prompts:
+                if part in prompt:
+                    part_names.append(part)
+                    break
         ps = PartSegmenter(
-            part_names=part_names,
+            part_names=PartGlotData.label_mapping.keys(),
             partglot_data_dir="/mnt/hdd/PartGlotData/",
             partglot_model_path="models/pn_agnostic.ckpt",
         )
         _, _, partmaps = ps.run_from_ref_data(sample_idx=pg_id, use_sseg_gt=True)
         pg_pc = None
         pg_labels = None
-        label_mapping = {"back": 0, "seat": 1, "leg": 2, "arm": 3}
+
         for pn, pc in zip(part_names, partmaps):
             print(pn, pc.shape, np.unique(pc, axis=0).shape)
             unique_array = np.unique(pc, axis=0)
             if pg_pc is None:
                 pg_pc = unique_array
-                pg_labels = np.ones_like(unique_array, dtype=int) * label_mapping[pn]
+                pg_labels = (
+                    np.ones_like(unique_array, dtype=int)
+                    * PartGlotData.label_mapping[pn]
+                )
             else:
                 pg_pc = np.vstack([pg_pc, unique_array])
                 pg_labels = np.vstack(
                     [
                         pg_labels,
-                        np.ones_like(unique_array, dtype=int) * label_mapping[pn],
+                        np.ones_like(unique_array, dtype=int)
+                        * PartGlotData.label_mapping[pn],
                     ]
                 )
         normalized_pg_pc = normalize_pointcloud(pg_pc)["pc"]
-        normalized_vertices = normalize_pointcloud(tri_mesh.vertices)["pc"]
+        normalized_vertices = normalize_pointcloud(
+            mesh.vertices.double().cpu().numpy()
+        )["pc"]
         p2 = torch.tensor(normalized_pg_pc).unsqueeze(0).to(device)
         p1 = torch.tensor(normalized_vertices).unsqueeze(0).to(device)
         _, indices = sided_distance(p1, p2)
@@ -114,16 +133,18 @@ class PartGlotData(torch.utils.data.Dataset):
 
         masks = {}
         for prompt in prompts:
-            if ("legs" in prompt) and ("legs" not in label_mapping.keys()):
+            if ("legs" in prompt) and ("legs" not in PartGlotData.label_mapping.keys()):
                 parts = ["leg"]
             else:
-                parts = [part for part in label_mapping.keys() if part in prompt]
+                parts = [
+                    part for part in PartGlotData.label_mapping.keys() if part in prompt
+                ]
             mask = torch.ones(len(mesh.vertices), 3)
             for part in parts:
-                mask[labels == label_mapping[part]] = 0
+                mask[labels == PartGlotData.label_mapping[part]] = 0
             masks[prompt] = mask
 
-        return masks, labels, tri_mesh
+        return masks, labels
 
     @staticmethod
     def get_gaussian_weights(mesh, masks):
@@ -167,3 +188,31 @@ class PartGlotData(torch.utils.data.Dataset):
             ]
 
         return normalized_weights, sigmas, coms
+
+    @staticmethod
+    def visualize_predicted_maps(points, labels, path):
+        label_colors = [PartGlotData.label_color[label] for label in labels]
+        fig = plt.figure()
+        ax = fig.add_subplot(projection="3d")
+        sp = ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=label_colors)
+        legend_elements = [
+            Line2D(
+                [0],
+                [0],
+                marker="o",
+                ls="",
+                color=PartGlotData.label_color[label],
+                label=PartGlotData.rev_label_mapping[label],
+            )
+            for label in np.unique(labels)
+        ]
+        ax.legend(handles=legend_elements, loc="right")
+        ax.set_xlim(-0.5, 0.5)
+        ax.set_ylim(-0.5, 0.5)
+        ax.set_zlim(-0.5, 0.5)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        ax.view_init(elev=30, azim=-120, vertical_axis="y")
+        ax.set_title("PartGlot predictions")
+        plt.savefig(path)

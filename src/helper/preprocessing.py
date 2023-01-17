@@ -65,7 +65,7 @@ def remesh_per_part(obj_path, save_path, remesh_iterations=6, fix_normals=True):
 
     export_string = trimesh.exchange.obj.export_obj(tri_mesh)
     save_path = Path(save_path)
-    Path(save_path.parent).mkdir(exist_ok=True)
+    Path(save_path.parent).mkdir(parents=True, exist_ok=True)
     with open(save_path, "w") as fp:
         fp.write(export_string)
         print("Saved.")
