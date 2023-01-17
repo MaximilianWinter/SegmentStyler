@@ -52,6 +52,9 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     dataset = config["dataset"](args.prompts, args.noisy_masks)
     data_dict = dataset[args.sample]
     dataset.move_batch_to_device(data_dict, device)
+    if "labels" in data_dict.keys():
+        dataset.visualize_predicted_maps(data_dict["mesh"].vertices.cpu().numpy(), data_dict["labels"], log_path.joinpath("part_map.png"))
+        wandb.log({'part_map': wandb.Image(str(log_path.joinpath("part_map.png")))}, step=0)   
 
     base_mesh = data_dict["mesh"]
     MeshNormalizer(base_mesh)()
