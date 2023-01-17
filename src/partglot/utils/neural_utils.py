@@ -20,7 +20,7 @@ def tokenizing(word2int: dict, text: str):
     Output:
         tensor of token: [len_seq]
     """
-    token = list(map(lambda x: word2int[x], text.split(" ")))
+    token = list(map(lambda x: word2int[x] if x in word2int.keys() else word2int["<UNK>"], text.split(" ")))
     token = torch.tensor(token)
 
     return token

@@ -95,10 +95,12 @@ class PartGlotData(torch.utils.data.Dataset):
                 if part in prompt:
                     part_names.append(part)
                     break
+        print(f"Using part names: {part_names}")
         ps = PartSegmenter(
-            part_names=PartGlotData.label_mapping.keys(),
+            part_names=part_names,
             partglot_data_dir="/mnt/hdd/PartGlotData/",
             partglot_model_path="models/pn_agnostic.ckpt",
+            prompts=prompts # if this is not None, partglot will use the prompts instead of the template sentence
         )
         _, _, partmaps = ps.run_from_ref_data(sample_idx=pg_id, use_sseg_gt=True)
         pg_pc = None
