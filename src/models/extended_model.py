@@ -7,13 +7,15 @@ from src.utils.utils import gaussian3D
 
 
 class Text2MeshExtended(Text2MeshOriginal):
-    def __init__(self, args, base_mesh):
-        super().__init__(args, base_mesh)
+    def __init__(self, args, data_dict):
+        super().__init__(args, data_dict)
 
         self.previous_pred_rgb = torch.zeros_like(self.default_color)
         self.initial_pred_rgb = None
-        self.masks = self.load_masks()
-        self.gaussian_weights, self.sigmas, self.coms = self.get_gaussian_weights_from_masks(self.masks)
+        self.masks = data_dict["masks"]
+        self.gaussian_weights = data_dict["weights"]
+        self.sigmas = data_dict["sigmas"]
+        self.coms = data_dict["coms"]
         self.num_backward = NumericsBackward.apply
 
     def forward(self, vertices):
@@ -62,74 +64,4 @@ class Text2MeshExtended(Text2MeshOriginal):
             )  # penalizing term, to be added to the loss
 
         return color_reg
-
-    def load_masks(self):
-        with open(self.args.mask_path) as fp:
-            mesh_metadata = jstyleson.load(fp)
-
-        masks = {}
-        for prompt in self.args.prompts:
-            if "legs" in prompt:
-                parts = ["leg_1", "leg_2", "leg_3", "leg_4"]
-            else:
-                parts = [
-                    part
-                    for part in mesh_metadata["mask_vertices"].keys()
-                    if part in prompt
-                ]
-            mask = torch.ones_like(self.default_color)
-            for part in parts:
-                start, finish = mesh_metadata["mask_vertices"][part]
-                mask[start:finish] = 0
-                if self.args.noisy_masks:
-                    n_tot = mask.shape[0]
-                    n = finish - start
-                    random_zeros = torch.randint(0, n_tot, (n // 5,))
-                    random_ones = torch.randint(0, n_tot, (n // 5,))
-                    mask[random_zeros] = 0
-                    mask[random_ones] = 1
-            masks[prompt] = mask
-
-        return masks
-
-    def get_gaussian_weights_from_masks(self, masks):
-        """
-        @param masks: dict with prompts as keys and masks as keys
-        @returns: tuple of normalized_weights, dict of normalized gaussian weights, sigmas and coms (both dicts)
-        """
-        normalized_weights = {}
-        sum_of_weights = None
-        sigmas = {}
-        coms = {}
-
-        for prompt, mask in masks.items():
-            inv_mask = 1 - mask
-            part_vertices = self.base_mesh.vertices[inv_mask[:, 0].bool()].detach()
-
-            COM = torch.mean(part_vertices, dim=0)
-            Sigma = (
-                (part_vertices - COM).T
-                @ (part_vertices - COM)
-                / (part_vertices.shape[0] - 1)
-            )
-            gauss_weight = gaussian3D(self.base_mesh.vertices, COM, Sigma)
-
-            weight = torch.zeros_like(inv_mask)
-            for i in range(weight.shape[1]):
-                weight[:, i] = gauss_weight
-            normalized_weights[prompt] = weight
-
-            if sum_of_weights is None:
-                sum_of_weights = weight.clone()
-            else:
-                sum_of_weights += weight
-
-            sigmas[prompt] = Sigma
-            coms[prompt] = COM
-
-        for prompt in normalized_weights.keys():
-            normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[
-                sum_of_weights != 0
-            ]
-
-        return normalized_weights, sigmas, coms
+        

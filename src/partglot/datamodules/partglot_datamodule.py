@@ -33,7 +33,7 @@ class PartglotDataModule(LightningDataModule):
         self.data_train = self.data_val = self.data_test = None
         self.prepare_data()
 
-    def prepare_data(self):
+    def prepare_data(self, use_chair_bsp=True):
         (
             self.game_data,
             self.word2int,
@@ -42,9 +42,11 @@ class PartglotDataModule(LightningDataModule):
             self.sn2int,
             self.sorted_sn,
         ) = unpickle_data(osp.join(self.hparams.data_dir, "game_data.pkl"))
-        self.h5_data = h5py.File(
-            osp.join(self.hparams.data_dir, "cic_bsp.h5"), "r"
-        )
+        if use_chair_bsp:
+            h5_data_path = osp.join(self.hparams.data_dir, "shapenet_partseg_chair_bsp.h5")
+        else:
+            h5_data_path = osp.join(self.hparams.data_dir, "cic_bsp.h5")
+        self.h5_data = h5py.File(h5_data_path)
 
     def setup(self, stage=None):
         if not self.data_train and not self.data_val and not self.data_test:
