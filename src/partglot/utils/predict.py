@@ -79,10 +79,14 @@ def ssegs2input(sup_segs):
     mask_batch = torch.from_numpy(np.array([[np.ones(data_batch.shape[2])]])).float().to(device) 
     return data_batch, mask_batch
 
-def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=["back", "seat", "leg", "arm"]):
+def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=["back", "seat", "leg", "arm"], prompts=None):
     attn_maps = []
-    for pn in part_names:
-        text_embeddings = tokenizing(word2int, f"chair with a {pn}").to(device)[None].expand(
+    
+    if prompts is None:
+        prompts = [f"chair with a {pn}" for pn in part_names]
+
+    for prompt in prompts:
+        text_embeddings = tokenizing(word2int, prompt).to(device)[None].expand(
             1, -1
         )
         tmp = partglot.forward(
