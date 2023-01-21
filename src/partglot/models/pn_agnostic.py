@@ -61,12 +61,13 @@ class PNAgnostic(pl.LightningModule):
         out = torch.max(out, 2)[0]
         return out
 
-    def forward(self, segs, segs_mask, text, return_only_attn=False):
+    def forward(self, segs, segs_mask, text, part_indicator=None, return_only_attn=False):
         """
         Input:
             segs: [B,K,n_segs,n_points,3]
             segs_mask: [B,K,n_segs]
             text: [B, len_seq]
+            part_indicator: None, placeholder signature for PNAware
             return_only_attn (if True): return only attention maps.
         Output: dict
             logits: [B, K]
