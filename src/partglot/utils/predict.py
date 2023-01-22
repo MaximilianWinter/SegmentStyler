@@ -4,12 +4,13 @@ import numpy as np
 from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
 from src.partglot.models.pn_agnostic import PNAgnostic
+from src.partglot.models.pn_aware import PNAware
 from src.utils.utils import device
 from src.partglot.utils.processing import cluster_supsegs, vstack2dim, convert2np
 from src.partglot.utils.neural_utils import tokenizing
 
 
-def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", batch_size=1):
+def get_loaded_model(data_dir, model_path="models/partglot_pn_aware.ckpt", batch_size=1):
     datamodule = PartglotDataModule(batch_size=batch_size,
         only_correct=True,
         only_easy_context=False,
@@ -20,15 +21,22 @@ def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", ba
         balance=True,
         data_dir=data_dir)
 
-    model = PNAgnostic(text_dim=64,
-            embedding_dim=100,
-            sup_segs_dim=64,
-            lr=1e-3,
-            data_dir=data_dir,
-            word2int=datamodule.word2int,
-            total_steps=1,
-            measure_iou_every_epoch=True,
-            save_pred_label_every_epoch=False)
+    if 'agnostic' in str(model_path):
+        model_class = PNAgnostic
+    elif 'pn_aware' in str(model_path):
+        model_class = PNAware
+    else:
+        raise ValueError("Invalid model path provided. Please check that the path contains either 'agnostic' or 'pn_aware' and try again.")
+
+    model = model_class(text_dim=64,
+                embedding_dim=100,
+                sup_segs_dim=64,
+                lr=1e-3,
+                data_dir=data_dir,
+                word2int=datamodule.word2int,
+                total_steps=1,
+                measure_iou_every_epoch=True,
+                save_pred_label_every_epoch=False)
 
     ckpt = torch.load(model_path, map_location="cpu")
     if "state_dict" in ckpt:
@@ -84,21 +92,32 @@ def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=
     
     if prompts is None:
         prompts = [f"chair with a {pn}" for pn in part_names]
-
+        
+    # tokenizes part indication, if PNAware    
+    if 'PNAware' in str(partglot):
+        part_indicator = torch.tensor([tokenizing(word2int, pn) for pn in part_names])[None].to(device).expand(1,-1)
+    else:
+        part_indicator = None
+        
     for prompt in prompts:
         text_embeddings = tokenizing(word2int, prompt).to(device)[None].expand(
             1, -1
         )
+
         tmp = partglot.forward(
-            ssegs_batch, # custom_ssegs_batch / batch_data
-            mask_batch, # custom_mask_batch / mask_data
-            text_embeddings, True)
+            ssegs_batch, 
+            mask_batch, 
+            text_embeddings,
+            part_indicator,
+            True)
         attn_maps.append(tmp)
         
-    attn_maps_concat = torch.cat(attn_maps).max(0)[1].cpu().numpy()
-
-    sup_segs2label = np.squeeze(attn_maps_concat)
-    return sup_segs2label
+    # idx: part indication index, meaning that
+    # PNAware gets the max index acroos all text embeddings and part indicators
+    # while PNAgnostic does it accross all text embeddings only
+    idx = 2 if 'PNAware' in str(partglot) else 0
+    sup_segs2label = np.unique(torch.cat(attn_maps).max(idx)[1].cpu().numpy(), axis=0)
+    return np.squeeze(sup_segs2label)
 
 
 def extract_pc2label(ssegs2label):

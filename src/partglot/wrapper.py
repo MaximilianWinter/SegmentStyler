@@ -23,7 +23,7 @@ class PartSegmenter():
                  part_names=["back", "seat", "leg", "arm"],
                  sseg_count=25,
                  partglot_data_dir=LOCAL_DATA_PATH / "partglot",
-                 partglot_model_path=LOCAL_MODELS_PATH / "partglot_pn_agnostic.ckpt",
+                 partglot_model_path=LOCAL_MODELS_PATH / "partglot_pn_aware.ckpt",
                  prompts=None):
         self.partglot_data_dir, self.partglot_model_path = partglot_data_dir, partglot_model_path
         self.partglot, self.partglot_dm = self._load_partglot()
