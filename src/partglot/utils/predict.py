@@ -112,16 +112,12 @@ def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=
             True)
         attn_maps.append(tmp)
         
-    # gets part maps considering...
-    if 'PNAware' in str(partglot):
-        # attention maps for each part indication
-        attn_maps_concat = torch.cat(attn_maps).max(2)[1][1].cpu().numpy()
-    else:
-        # overall attention maps
-        attn_maps_concat = torch.cat(attn_maps).max(0)[1].cpu().numpy()
-
-    sup_segs2label = np.squeeze(attn_maps_concat)
-    return sup_segs2label
+    # idx: part indication index, meaning that
+    # PNAware gets the max index acroos all text embeddings and part indicators
+    # while PNAgnostic does it accross all text embeddings only
+    idx = 2 if 'PNAware' in str(partglot) else 0
+    sup_segs2label = np.unique(torch.cat(attn_maps).max(idx)[1].cpu().numpy(), axis=0)
+    return np.squeeze(sup_segs2label)
 
 
 def extract_pc2label(ssegs2label):
