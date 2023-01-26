@@ -6,6 +6,7 @@ import kaolin as kal
 import clip
 from torchvision import transforms
 import pandas as pd
+from tqdm import tqdm
 
 from src.submodels.render import Renderer
 from src.utils.render import get_render_resolution
@@ -91,8 +92,7 @@ class Evaluator:
             for i in range(self.idx_min, self.idx_max + 1)
             if i not in self.exclude_ids
         ]
-        for idx in indices:
-            print(idx)
+        for idx in tqdm(indices):
             cosine_similarities = []
 
             base_path = data_dir.joinpath(f"version_{idx}")
