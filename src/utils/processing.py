@@ -95,6 +95,12 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     # TEXT PROMPT
     if not args.prompts:
         raise ValueError("No prompts given.")
+    else:
+        prompt_path = log_path.joinpath("prompts.txt")
+        with open(prompt_path, "w") as fp:
+            for prompt in args.prompts:
+                fp.write(prompt+"\n")
+
 
     trainer = Trainer(
         text2mesh_model, network_input, args.prompts, optimizer, lr_scheduler, loss_func
