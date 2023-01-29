@@ -1,12 +1,6 @@
 while read sample; do
-    while read p1; do
-        read p2
-        read p3
-        read p4
-        echo "$p1"
-        echo "$p2"
-        echo "$p3"
-        echo "$p4"
+    while read p; do
+        echo "$p"
         echo "$sample"
 
         python main.py \
@@ -31,18 +25,14 @@ while read sample; do
         --normdepth 2 \
         --n_iter 1500 \
         --learning_rate 0.005 \
-        --output_dir evaluation_no_blend_new \
-        --experiment_group evaluation_no_blend_new \
+        --output_dir evaluation_baseline \
+        --experiment_group evaluation_baseline \
         --width 32 \
         --depth 2 \
-        --model_name Text2MeshMultiMLP \
-        --loss_name multi_mlp_loss \
-        --do_backward_masking \
+        --model_name Text2MeshOriginal \
+        --loss_name default_loss \
         --dataset PartGlotData \
         --sample $sample \
-        --prompt "$p1" \
-        --prompt "$p2" \
-        --prompt "$p3" \
-        --prompt "$p4" 
-    done <data/new_uncombined_sentences.txt
+        --prompt "$p" 
+    done <data/combined_sentences.txt
 done <data/samples.txt
