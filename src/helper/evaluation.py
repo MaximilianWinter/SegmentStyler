@@ -65,6 +65,8 @@ class Evaluator:
 
         self.cosine_sims = None  # pandas.Dataframe, rows=ids, cols=prompts
         self.cosine_sims_baseline = None
+        self.cosine_sims_part_imgs = None
+        self.cosine_sims_part_imgs_baseline = None
 
         self.id_to_correct_combined_prompt = {}
         self.correct_combined_prompt_to_id = {}
@@ -83,6 +85,8 @@ class Evaluator:
     def fill_dfs(self):
         self.cosine_sims = self.get_df(self.data_dir)
         self.cosine_sims_baseline = self.get_df(self.baseline_dir)
+        self.cosine_sims_part_imgs = self.get_df_with_part_imgs(self.data_dir)
+        self.cosine_sims_part_imgs_baseline = self.get_df_with_part_imgs(self.data_dir)
 
     def get_df(self, data_dir):
         columns = [(True, prompt) for prompt in self.all_combined_prompts]
@@ -124,6 +128,43 @@ class Evaluator:
 
         return df
 
+    def get_df_with_part_imgs(self, data_dir):
+        # now we use the original uncombined prompts
+        # without adding "a chair with a " as prefix
+        columns = [(False, prompt) for prompt in np.unique(self.all_uncombined_prompts)]
+        data = []
+        indices = [
+            i
+            for i in range(self.idx_min, self.idx_max + 1)
+            if i not in self.exclude_ids
+        ]
+        for idx in tqdm(indices):
+            cosine_similarities = []
+            base_path = data_dir.joinpath(f"version_{idx}")
+            _, real_part_prompts = Evaluator.get_real_prompts(base_path, add_prefix=False)
+
+            encoded_imgs = self.get_encoded_part_imgs(base_path)
+
+            for _, prompt in columns:
+                parts_in_prompt = [part for part in encoded_imgs.keys() if part in prompt]
+                if len(parts_in_prompt) != 1:
+                    raise ValueError("There are multiple parts in the prompt.")
+                else:
+                    part = parts_in_prompt[0]
+                encoded_img = encoded_imgs[part]
+                prompt_token = clip.tokenize([prompt]).to(self.device)
+                encoded_prompt = self.clip_model.encode_text(prompt_token)
+                cosine_sim = torch.cosine_similarity(encoded_img, encoded_prompt).item()
+                cosine_similarities.append(cosine_sim)
+            data.append(cosine_similarities)
+        
+        df = pd.DataFrame(
+            data,
+            index=indices,
+            columns=pd.MultiIndex.from_tuples(columns, names=["combined", "prompts"]),
+        )
+        return df
+
     def add_to_dicts(self, idx, real_combined_prompt, real_part_prompts):
         self.id_to_correct_combined_prompt[idx] = real_combined_prompt
         self.correct_combined_prompt_to_id[real_combined_prompt] = idx
@@ -131,7 +172,7 @@ class Evaluator:
         # self.correct_part_prompts_to_id[real_part_prompts] = idx
 
     @staticmethod
-    def get_real_prompts(base_path):
+    def get_real_prompts(base_path, add_prefix=True):
         prompts = base_path.joinpath("prompts.txt").read_text().splitlines()
         if len(prompts) == 4:
             combined_prompt = "a chair with a "
@@ -147,8 +188,9 @@ class Evaluator:
                 for prompt in combined_prompt.split(", ")
             ]
 
-        # add "a chair with a " to all part prompts
-        part_prompts = ["a chair with a " + prompt for prompt in part_prompts]
+        if add_prefix:
+            # add "a chair with a " to all part prompts
+            part_prompts = ["a chair with a " + prompt for prompt in part_prompts]
 
         return combined_prompt, part_prompts
 
