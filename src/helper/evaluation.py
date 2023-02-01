@@ -11,6 +11,7 @@ from tqdm import tqdm
 from src.submodels.render import Renderer
 from src.utils.render import get_render_resolution
 from src.data.mesh import Mesh
+from src.data.partglot_data import PartGlotData
 
 
 class Evaluator:
@@ -23,6 +24,9 @@ class Evaluator:
         device="cpu",
         idx_min=0,
         idx_max=41,
+        combined_prompts_path = Path("data/combined_sentences.txt"),
+        uncombined_prompts_path = Path("data/uncombined_sentences.txt")
+
     ) -> None:
         """
         implemented metrics:
@@ -50,10 +54,10 @@ class Evaluator:
         )
 
         self.all_combined_prompts = (
-            Path("data/combined_sentences.txt").read_text().splitlines()
+            combined_prompts_path.read_text().splitlines()
         )
         self.all_uncombined_prompts = (
-            Path("data/uncombined_sentences.txt").read_text().splitlines()
+            uncombined_prompts_path.read_text().splitlines()
         )
 
         self.data_dir = data_dir
@@ -73,6 +77,8 @@ class Evaluator:
         self.idx_max = idx_max
 
         self.device = device
+
+        self.pg_data = PartGlotData(None, return_keys=["mesh", "gt_labels"])
 
     def fill_dfs(self):
         self.cosine_sims = self.get_df(self.data_dir)
@@ -167,6 +173,36 @@ class Evaluator:
         encoded_img = self.clip_model.encode_image(clip_image.to(self.device))
 
         return encoded_img
+
+    def get_encoded_part_imgs(self, base_path, show=False):
+        tri_mesh = trimesh.load(base_path.joinpath("final_mesh.obj"))
+        sample_id = int(base_path.joinpath("sample_id.txt").read_text())
+        gt_labels = self.pg_data[sample_id]["gt_labels"]
+        encoded_imgs = {}
+        for part, part_id in self.pg_data.label_mapping.items():
+            mask = gt_labels == part_id
+            masked_faces = tri_mesh.vertex_faces[mask]
+            unique_faces = np.unique(masked_faces[masked_faces != -1])
+            sub_tri_mesh = tri_mesh.submesh([unique_faces], append=True)
+            submesh = Mesh(sub_tri_mesh)
+            rgb = (
+            torch.tensor(sub_tri_mesh.visual.vertex_colors[:, :3] / 255.0)
+            .float()
+            .to(submesh.vertices.device)
+            )
+            submesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
+                rgb.unsqueeze(0), submesh.faces
+            )
+            submesh.vertex_colors = rgb
+
+            img = self.renderer.render_single_view(
+            submesh, elev=np.pi / 6, azim=-np.pi / 4, show=show
+            )
+            clip_image = self.clip_transform(img)
+            encoded_img = self.clip_model.encode_image(clip_image.to(self.device))
+            encoded_imgs[part] = encoded_img
+
+        return encoded_imgs
 
     def get_avg_cosine_sim_combined(self, verbose=True):
         cosine_sims_new = []

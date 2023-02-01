@@ -24,7 +24,21 @@ class PartGlotData(torch.utils.data.Dataset):
     rev_label_mapping = {0: "back", 1: "seat", 2: "leg", 3: "arm"}
     label_color = {0: "r", 1: "g", 2: "b", 3: "m"}
 
-    def __init__(self, prompts, *args, return_gt_labels=False, **kwargs):
+    def __init__(
+        self,
+        prompts,
+        *args,
+        return_keys=[
+            "mesh",
+            "masks",
+            "weights",
+            "sigmas",
+            "coms",
+            "labels",
+            "gt_labels",
+        ],
+        **kwargs,
+    ):
         """
         Constructor.
         @param prompts: list of strings, the prompts
@@ -37,22 +51,30 @@ class PartGlotData(torch.utils.data.Dataset):
         )
 
         self.prompts = prompts
-        self.return_gt_labels = return_gt_labels
+        self.return_keys = return_keys
 
     def __len__(self):
         return len(self.items)
 
     def __getitem__(self, index):
         pg_id, synset_id, item_id = self.items[index].split("/")
-        mesh = PartGlotData.get_mesh(synset_id, item_id)
-        masks, labels = PartGlotData.get_masks(
-            mesh, synset_id, item_id, int(pg_id), self.prompts
-        )
-        weights, sigmas, coms = PartGlotData.get_gaussian_weights(mesh, masks)
-        if self.return_gt_labels:
-            gt_labels = PartGlotData.get_gt_labels(mesh, synset_id, item_id)
-        else:
-            gt_labels = None
+        mesh = masks = weights = sigmas = coms = labels = gt_labels = None
+        if "mesh" in self.return_keys:
+            mesh = PartGlotData.get_mesh(synset_id, item_id)
+            if "gt_labels" in self.return_keys:
+                gt_labels = PartGlotData.get_gt_labels(mesh, synset_id, item_id)
+            if "masks" in self.return_keys or "labels" in self.return_keys:
+                masks, labels = PartGlotData.get_masks(
+                    mesh, synset_id, item_id, int(pg_id), self.prompts
+                )
+                if (
+                    "weights" in self.return_keys
+                    or "sigmas" in self.return_keys
+                    or "coms" in self.return_keys
+                ):
+                    weights, sigmas, coms = PartGlotData.get_gaussian_weights(
+                        mesh, masks
+                    )
 
         return {
             "name": f"{synset_id}-{item_id}",
