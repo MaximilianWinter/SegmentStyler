@@ -8,18 +8,23 @@ from matplotlib.lines import Line2D
 from src.data.mesh import Mesh
 from src.partglot.wrapper import PartSegmenter
 from src.utils.utils import gaussian3D, device
-from src.partglot.utils.partglot_bspnet_preprocess import normalize_pointcloud
+from src.partglot.utils.partglot_bspnet_preprocess import (
+    normalize_pointcloud,
+    rotate_pointcloud,
+)
 from src.helper.preprocessing import remesh_per_part
 
 
 class PartGlotData(torch.utils.data.Dataset):
     dataset_path = Path("/mnt/hdd/PartGlotData")
     shapenet_path = Path("/mnt/hdd/ShapeNetCore.v2")
+    partseg_gt_path = Path(f"/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0")
+
     label_mapping = {"back": 0, "seat": 1, "leg": 2, "arm": 3}
     rev_label_mapping = {0: "back", 1: "seat", 2: "leg", 3: "arm"}
     label_color = {0: "r", 1: "g", 2: "b", 3: "m"}
 
-    def __init__(self, prompts, *args, **kwargs):
+    def __init__(self, prompts, *args, return_gt_labels=False, **kwargs):
         """
         Constructor.
         @param prompts: list of strings, the prompts
@@ -32,6 +37,7 @@ class PartGlotData(torch.utils.data.Dataset):
         )
 
         self.prompts = prompts
+        self.return_gt_labels = return_gt_labels
 
     def __len__(self):
         return len(self.items)
@@ -43,6 +49,11 @@ class PartGlotData(torch.utils.data.Dataset):
             mesh, synset_id, item_id, int(pg_id), self.prompts
         )
         weights, sigmas, coms = PartGlotData.get_gaussian_weights(mesh, masks)
+        if self.return_gt_labels:
+            gt_labels = PartGlotData.get_gt_labels(mesh, synset_id, item_id)
+        else:
+            gt_labels = None
+
         return {
             "name": f"{synset_id}-{item_id}",
             "mesh": mesh,
@@ -51,6 +62,7 @@ class PartGlotData(torch.utils.data.Dataset):
             "sigmas": sigmas,
             "coms": coms,
             "labels": labels,
+            "gt_labels": gt_labels,
         }
 
     @staticmethod
@@ -100,7 +112,7 @@ class PartGlotData(torch.utils.data.Dataset):
             part_names=part_names,
             partglot_data_dir=PartGlotData.dataset_path,
             partglot_model_path=PartGlotData.dataset_path.joinpath("pn_aware.ckpt"),
-            prompts=prompts # if this is not None, partglot will use the prompts instead of the template sentence
+            prompts=prompts,  # if this is not None, partglot will use the prompts instead of the template sentence
         )
         _, _, partmaps = ps.run_from_ref_data(sample_idx=pg_id, use_sseg_gt=True)
         pg_pc = None
@@ -190,6 +202,38 @@ class PartGlotData(torch.utils.data.Dataset):
             ]
 
         return normalized_weights, sigmas, coms
+
+    @staticmethod
+    def get_gt_labels(mesh, synset_id, item_id):
+        points_list = (
+            PartGlotData.partseg_gt_path.joinpath(f"{synset_id}/points/{item_id}.pts")
+            .read_text()
+            .splitlines()
+        )
+        labels_list = (
+            PartGlotData.partseg_gt_path.joinpath(
+                f"{synset_id}/points_label/{item_id}.seg"
+            )
+            .read_text()
+            .splitlines()
+        )
+        labels = (
+            np.array(labels_list, dtype=int) - 1
+        )  # the gt labels in the dataset are from 1 to 4, we want them to be from 0 to 3
+        points = np.zeros((len(points_list), 3))
+        for i, pts in enumerate(points_list):
+            points[i, :] = pts.split(" ")
+
+        normalized_pc = normalize_pointcloud(rotate_pointcloud(points))["pc"]
+        normalized_vertices = normalize_pointcloud(
+            mesh.vertices.double().cpu().numpy()
+        )["pc"]
+        p2 = torch.tensor(normalized_pc).unsqueeze(0).to(device)
+        p1 = torch.tensor(normalized_vertices).unsqueeze(0).to(device)
+        _, indices = sided_distance(p1, p2)
+        mesh_gt_labels = labels[indices.cpu()][0, :]
+
+        return mesh_gt_labels
 
     @staticmethod
     def visualize_predicted_maps(points, labels, path):
