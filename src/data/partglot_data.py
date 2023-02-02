@@ -4,6 +4,7 @@ import numpy as np
 from kaolin.metrics.pointcloud import sided_distance
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from kmeans_pytorch import kmeans
 
 from src.data.mesh import Mesh
 from src.partglot.wrapper import PartSegmenter
@@ -208,14 +209,34 @@ class PartGlotData(torch.utils.data.Dataset):
         for prompt, mask in masks.items():
             inv_mask = 1 - mask
             part_vertices = mesh.vertices[inv_mask[:, 0].bool()].detach()
+            if "arm" in prompt or "leg" in prompt:
+                device = part_vertices.device
+                n_clusters = 2 if "arm" in prompt else 4
+                cluster_ids, cluster_centers = kmeans(X=part_vertices, num_clusters=n_clusters, distance='euclidean', device=device)
+                cluster_centers = cluster_centers.to(device)
+                cluster_ids = cluster_ids.to(device)
+                gauss_weights = []
+                sigma_list = []
+                for i, center in enumerate(cluster_centers):
+                    sub_part_vertices = part_vertices[cluster_ids == i]
+                    Sigma = (sub_part_vertices - center).T@(sub_part_vertices - center)/(sub_part_vertices.shape[0] - 1)
+                    sigma_list.append(Sigma)
+                    gauss_weights.append(gaussian3D(mesh.vertices, center, Sigma).unsqueeze(0))
+                
+                gauss_weight = torch.sum(torch.cat(gauss_weights, dim=0), dim=0)
+                sigmas[prompt] = sigma_list
+                coms[prompt] = list(cluster_centers)
+            else:
+                center = torch.mean(part_vertices, dim=0)
+                Sigma = (
+                    (part_vertices - center).T
+                    @ (part_vertices - center)
+                    / (part_vertices.shape[0] - 1)
+                )
+                gauss_weight = gaussian3D(mesh.vertices, center, Sigma)
 
-            COM = torch.mean(part_vertices, dim=0)
-            Sigma = (
-                (part_vertices - COM).T
-                @ (part_vertices - COM)
-                / (part_vertices.shape[0] - 1)
-            )
-            gauss_weight = gaussian3D(mesh.vertices, COM, Sigma)
+                sigmas[prompt] = Sigma
+                coms[prompt] = center
 
             weight = torch.zeros_like(inv_mask)
             for i in range(weight.shape[1]):
@@ -226,9 +247,6 @@ class PartGlotData(torch.utils.data.Dataset):
                 sum_of_weights = weight.clone()
             else:
                 sum_of_weights += weight
-
-            sigmas[prompt] = Sigma
-            coms[prompt] = COM
 
         for prompt in normalized_weights.keys():
             normalized_weights[prompt][sum_of_weights != 0] /= sum_of_weights[
