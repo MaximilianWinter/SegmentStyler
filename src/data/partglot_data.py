@@ -103,10 +103,10 @@ class PartGlotData(torch.utils.data.Dataset):
             key: batch["weights"][key].to(device) for key in batch["weights"].keys()
         }
         batch["sigmas"] = {
-            key: batch["sigmas"][key].to(device) for key in batch["sigmas"].keys()
+            key: batch["sigmas"][key].to(device) if not isinstance(batch["sigmas"][key], list) else [sigma.to(device) for sigma in batch["sigmas"][key]] for key in batch["sigmas"].keys()
         }
         batch["coms"] = {
-            key: batch["coms"][key].to(device) for key in batch["coms"].keys()
+            key: batch["coms"][key].to(device) if not isinstance(batch["coms"][key], list) else [com.to(device) for com in batch["coms"][key]] for key in batch["coms"].keys()
         }
 
     @staticmethod
