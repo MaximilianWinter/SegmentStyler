@@ -38,6 +38,7 @@ while read sample; do
         --model_name Text2MeshMultiMLP \
         --loss_name multi_mlp_loss \
         --do_backward_masking \
+        --biased_views \
         --dataset PartGlotData \
         --sample $sample \
         --prompt "$p1" \
