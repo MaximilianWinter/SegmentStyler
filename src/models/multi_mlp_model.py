@@ -126,22 +126,23 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         # Rendering, Augmentations and CLIP encoding per prompt
         encoded_renders_dict_per_prompt = {}
         rendered_images_per_prompt = None
-        if self.args.biased_views:
-            for prompt in self.args.prompts:
-                inv_mask = 1 - self.masks[prompt]
-                if self.args.gaussian_blending:
-                    weight = gauss_weights[prompt]
-                else:
-                    weight = inv_mask
-                # Get stylized mesh
-                if self.args.do_backward_masking:
-                    pred_rgb_masked = self.mask_backward(pred_rgb, weight)
-                    pred_normal_masked = self.mask_backward(pred_normal, weight)
+        
+        for i, prompt in enumerate(self.args.prompts):
+            inv_mask = 1 - self.masks[prompt]
+            if self.args.gaussian_blending:
+                weight = gauss_weights[prompt]
+            else:
+                weight = inv_mask
+            # Get stylized mesh
+            if self.args.do_backward_masking:
+                pred_rgb_masked = self.mask_backward(pred_rgb, weight)
+                pred_normal_masked = self.mask_backward(pred_normal, weight)
 
-                    self.stylize_mesh(pred_rgb_masked, pred_normal_masked)
-                else:
-                    self.stylize_mesh(pred_rgb, pred_normal)
+                self.stylize_mesh(pred_rgb_masked, pred_normal_masked)
+            else:
+                self.stylize_mesh(pred_rgb, pred_normal)
 
+            if self.args.biased_views:
                 center_point = torch.mean(
                     vertices[inv_mask[:, 0].bool()], dim=0
                 )  # we use the part's COM
@@ -157,18 +158,17 @@ class Text2MeshMultiMLP(Text2MeshExtended):
                     center_point, distance, S, V, m
                 )
 
-                encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
-                if rendered_images_per_prompt is None:
-                    rendered_images_per_prompt = rendered_images
-                else:
-                    rendered_images_per_prompt = torch.cat(
-                        [rendered_images_per_prompt, rendered_images], dim=0
-                    )
-        else:
-            encoded_renders_dict, rendered_images = self.render_and_encode()
-            encoded_renders_dict_per_prompt = {prompt: encoded_renders_dict for prompt in self.args.prompts}
-            rendered_images_per_prompt = torch.cat([rendered_images for prompt in self.args.prompts])
-
+            else:
+                if i == 0:
+                    encoded_renders_dict, rendered_images = self.render_and_encode()
+            
+            encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
+            if rendered_images_per_prompt is None:
+                rendered_images_per_prompt = rendered_images
+            else:
+                rendered_images_per_prompt = torch.cat(
+                    [rendered_images_per_prompt, rendered_images], dim=0
+                )
 
         color_reg = self.get_color_reg_terms(pred_rgb)
 
