@@ -12,10 +12,14 @@ class Text2MeshExtended(Text2MeshOriginal):
 
         self.previous_pred_rgb = torch.zeros_like(self.default_color)
         self.initial_pred_rgb = None
-        self.masks = data_dict["masks"]
-        self.gaussian_weights = data_dict["weights"]
-        self.sigmas = data_dict["sigmas"]
-        self.coms = data_dict["coms"]
+        if self.args.use_gt_masks:
+            self.masks = data_dict["gt_masks"]
+            # Gaussian weights not implemented yet for GT masks TODO
+        else:
+            self.masks = data_dict["masks"]
+            self.gaussian_weights = data_dict["weights"]
+            self.sigmas = data_dict["sigmas"]
+            self.coms = data_dict["coms"]
         self.num_backward = NumericsBackward.apply
 
     def forward(self, vertices):

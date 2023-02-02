@@ -36,6 +36,7 @@ class PartGlotData(torch.utils.data.Dataset):
             "coms",
             "labels",
             "gt_labels",
+            "gt_masks",
         ],
         **kwargs,
     ):
@@ -58,11 +59,15 @@ class PartGlotData(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         pg_id, synset_id, item_id = self.items[index].split("/")
-        mesh = masks = weights = sigmas = coms = labels = gt_labels = None
+        mesh = masks = weights = sigmas = coms = labels = gt_labels = gt_masks = None
         if "mesh" in self.return_keys:
             mesh = PartGlotData.get_mesh(synset_id, item_id)
             if "gt_labels" in self.return_keys:
                 gt_labels = PartGlotData.get_gt_labels(mesh, synset_id, item_id)
+                if "gt_masks" in self.return_keys:
+                    gt_masks = PartGlotData.masks_from_labels(
+                        mesh, gt_labels, self.prompts
+                    )
             if "masks" in self.return_keys or "labels" in self.return_keys:
                 masks, labels = PartGlotData.get_masks(
                     mesh, synset_id, item_id, int(pg_id), self.prompts
@@ -85,6 +90,7 @@ class PartGlotData(torch.utils.data.Dataset):
             "coms": coms,
             "labels": labels,
             "gt_labels": gt_labels,
+            "gt_masks": gt_masks,
         }
 
     @staticmethod
@@ -167,6 +173,12 @@ class PartGlotData(torch.utils.data.Dataset):
         _, indices = sided_distance(p1, p2)
         labels = pg_labels[indices.cpu()][0, :, 0]
 
+        masks = PartGlotData.masks_from_labels(mesh, labels, prompts)
+
+        return masks, labels
+
+    @staticmethod
+    def masks_from_labels(mesh, labels, prompts):
         masks = {}
         for prompt in prompts:
             if ("legs" in prompt) and ("legs" not in PartGlotData.label_mapping.keys()):
@@ -180,7 +192,7 @@ class PartGlotData(torch.utils.data.Dataset):
                 mask[labels == PartGlotData.label_mapping[part]] = 0
             masks[prompt] = mask
 
-        return masks, labels
+        return masks
 
     @staticmethod
     def get_gaussian_weights(mesh, masks):

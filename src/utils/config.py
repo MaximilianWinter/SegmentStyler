@@ -84,6 +84,7 @@ def get_parser():
     parser.add_argument('--gaussian_blending', action="store_true", default=False)
     parser.add_argument('--final_gaussian_blending', action="store_true", default=False)
     parser.add_argument('--biased_views', action="store_true", default=False)
+    parser.add_argument('--use_gt_masks', action="store_true", default=False)
     
     # data
     parser.add_argument('--dataset', type=str, default="PreprocessedShapeNet")
