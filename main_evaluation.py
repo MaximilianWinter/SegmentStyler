@@ -23,7 +23,7 @@ eval.get_r_precision(eval.cosine_sims_baseline, eval.id_to_correct_combined_prom
 
 eval.get_comparison_metrics(eval.cosine_sims, eval.cosine_sims_baseline, eval.id_to_correct_combined_prompt, combined=True)
 
-print("\n### part prompts, w/o sgegmented part imgs ###")
+print("\n### part prompts, w/o segmented part imgs ###")
 eval.get_avg_cosine_sim(eval.cosine_sims, eval.id_to_correct_part_prompts,combined_prompts=False)
 eval.get_avg_cosine_sim(eval.cosine_sims_baseline, eval.id_to_correct_part_prompts, combined_prompts=False)
 
