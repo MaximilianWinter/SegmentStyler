@@ -160,7 +160,9 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
             else:
                 if i == 0:
-                    encoded_renders_dict, rendered_images = self.render_and_encode()
+                    encoded_renders_dict, rendered_images, views = self.render_and_encode(return_views=True)
+                else:
+                    encoded_renders_dict, rendered_images = self.render_and_encode(views=views)
             
             encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
             if rendered_images_per_prompt is None:
