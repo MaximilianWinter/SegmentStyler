@@ -108,6 +108,10 @@ class PartGlotData(torch.utils.data.Dataset):
         batch["coms"] = {
             key: batch["coms"][key].to(device) if not isinstance(batch["coms"][key], list) else [com.to(device) for com in batch["coms"][key]] for key in batch["coms"].keys()
         }
+        batch["gt_masks"] = {
+            key: batch["gt_masks"][key].to(device) for key in batch["gt_masks"].keys()
+        }
+
 
     @staticmethod
     def get_mesh(synset_id, item_id):

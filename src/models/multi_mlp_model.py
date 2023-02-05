@@ -26,14 +26,14 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
     def forward(self, vertices):
         # Prop. through MLPs
-        pred_rgb, pred_normal = self.prop_through_mlps(vertices, self.gaussian_weights)
+        pred_rgb, pred_normal = self.prop_through_mlps(vertices)
 
         # Rendering, Augmentations and CLIP encoding per prompt
         (
             encoded_renders_dict_per_prompt,
             rendered_images_per_prompt,
             color_reg,
-        ) = self.render_augment_encode(vertices, pred_rgb, pred_normal, self.gaussian_weights)
+        ) = self.render_augment_encode(vertices, pred_rgb, pred_normal)
 
         return {
             "encoded_renders": encoded_renders_dict_per_prompt,
@@ -89,7 +89,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
         return encoded_renders_dict, rendered_images
 
-    def prop_through_mlps(self, vertices, gauss_weights):
+    def prop_through_mlps(self, vertices):
         # Prop. through MLPs
         pred_rgb = None
         pred_normal = None
@@ -97,7 +97,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             pred_rgb_per_prompt, pred_normal_per_prompt = mlp(vertices)
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                weight = gauss_weights[prompt]
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             pred_rgb_masked = pred_rgb_per_prompt * weight
@@ -122,7 +122,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
         return pred_rgb, pred_normal
 
-    def render_augment_encode(self, vertices, pred_rgb, pred_normal, gauss_weights):
+    def render_augment_encode(self, vertices, pred_rgb, pred_normal):
         # Rendering, Augmentations and CLIP encoding per prompt
         encoded_renders_dict_per_prompt = {}
         rendered_images_per_prompt = None
@@ -130,7 +130,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         for i, prompt in enumerate(self.args.prompts):
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                weight = gauss_weights[prompt]
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             # Get stylized mesh
