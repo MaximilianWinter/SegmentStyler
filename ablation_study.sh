@@ -31,12 +31,13 @@ while read p1; do
         --normdepth 2 \
         --n_iter 1500 \
         --learning_rate 0.005 \
-        --output_dir evaluation_b \
-        --experiment_group evaluation_b \
+        --output_dir evaluation_b_backward_masking \
+        --experiment_group evaluation_b_backward_masking \
         --width 32 \
         --depth 2 \
-        --model_name Text2MeshMultiMLP \
+        --model_name Text2MeshBackwardMasking \
         --loss_name multi_mlp_loss \
+        --do_backward_masking \
         --dataset PartGlotData \
         --sample $sample \
         --prompt "$p1" \
@@ -157,4 +158,4 @@ while read p1; do
         --prompt "$p3" \
         --prompt "$p4"
     done <data/samples.txt
-done <data/new_uncombined_sentences.txt
+done <data/new_uncombined_sentences_subsample.txt
