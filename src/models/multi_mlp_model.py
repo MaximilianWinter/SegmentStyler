@@ -143,20 +143,24 @@ class Text2MeshMultiMLP(Text2MeshExtended):
                 self.stylize_mesh(pred_rgb, pred_normal)
 
             if self.args.biased_views:
-                center_point = torch.mean(
-                    vertices[inv_mask[:, 0].bool()], dim=0
-                )  # we use the part's COM
-                distance = (
-                    torch.sum((vertices[inv_mask[:, 0].bool()] - center_point) ** 2, dim=1)
-                    .sqrt()
-                    .max()
-                    * 2
-                )  # we use 2-times the part's expansion
-                (U, S, V) = torch.pca_lowrank(vertices[inv_mask[:, 0].bool()])
-                m = vertices[inv_mask[:, 0].bool()].shape[0]
-                encoded_renders_dict, rendered_images = self.biased_render_and_encode(
-                    center_point, distance, S, V, m
-                )
+                if inv_mask.bool().any():
+                    center_point = torch.mean(
+                        vertices[inv_mask[:, 0].bool()], dim=0
+                    )  # we use the part's COM
+                    distance = (
+                        torch.sum((vertices[inv_mask[:, 0].bool()] - center_point) ** 2, dim=1)
+                        .sqrt()
+                        .max()
+                        * 2
+                    )  # we use 2-times the part's expansion
+                    (U, S, V) = torch.pca_lowrank(vertices[inv_mask[:, 0].bool()])
+                    m = vertices[inv_mask[:, 0].bool()].shape[0]
+                    encoded_renders_dict, rendered_images = self.biased_render_and_encode(
+                        center_point, distance, S, V, m
+                    )
+                else:
+                    print("Could not bias view as part is not present in mask.")
+                    encoded_renders_dict, rendered_images = self.render_and_encode()
 
             else:
                 if i == 0:
