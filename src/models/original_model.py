@@ -12,7 +12,7 @@ from src.utils.utils import device
 
 
 class Text2MeshOriginal(nn.Module):
-    def __init__(self, args, base_mesh):
+    def __init__(self, args, data_dict):
         super().__init__()
         self.args = args
 
@@ -33,6 +33,7 @@ class Text2MeshOriginal(nn.Module):
 
         #### OTHER ####
         # Mesh
+        base_mesh = data_dict["mesh"]
         self.base_mesh = base_mesh
         self.base_mesh_vertices = copy.deepcopy(base_mesh.vertices)
 
@@ -86,25 +87,19 @@ class Text2MeshOriginal(nn.Module):
 
         MeshNormalizer(self.base_mesh)()
 
-    def render_and_encode(self):
+    def render_and_encode(self, return_views=False, views=None):
         # Rendering
-        rendered_images, _, _ = self.renderer.render_front_views(
-            self.base_mesh,
-            num_views=self.args.n_views,
-            show=self.args.show,
-            center_azim=self.args.frontview_center[0],
-            center_elev=self.args.frontview_center[1],
-            std=self.args.frontview_std,
-            return_views=True,
-            background=self.background,
-        )
-        geo_renders = None
-        if self.args.geoloss:
-            self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
-                self.default_color.unsqueeze(0), self.base_mesh.faces
+        if views is not None:
+            rendered_images, elev, azim = self.renderer.render_given_front_views(
+                self.base_mesh,
+                views["elev"],
+                views["azim"],
+                show=self.args.show,
+                return_views=True,
+                background=self.background,
             )
-
-            geo_renders, _, _ = self.renderer.render_front_views(
+        else:
+            rendered_images, elev, azim = self.renderer.render_front_views(
                 self.base_mesh,
                 num_views=self.args.n_views,
                 show=self.args.show,
@@ -114,10 +109,40 @@ class Text2MeshOriginal(nn.Module):
                 return_views=True,
                 background=self.background,
             )
+        geo_renders = geo_elev = geo_azim = None
+        if self.args.geoloss:
+            self.base_mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
+                self.default_color.unsqueeze(0), self.base_mesh.faces
+            )
+
+            if views is not None:
+                geo_renders, geo_elev, geo_azim = self.renderer.render_given_front_views(
+                self.base_mesh,
+                views["elev"],
+                views["azim"],
+                show=self.args.show,
+                return_views=True,
+                background=self.background,
+            )
+            else:
+                geo_renders, geo_elev, geo_azim = self.renderer.render_front_views(
+                    self.base_mesh,
+                    num_views=self.args.n_views,
+                    show=self.args.show,
+                    center_azim=self.args.frontview_center[0],
+                    center_elev=self.args.frontview_center[1],
+                    std=self.args.frontview_std,
+                    return_views=True,
+                    background=self.background,
+                )
 
         # Augmentations and CLIP encoding
         encoded_renders_dict = self.clip_with_augs.get_encoded_renders(
             rendered_images, geo_renders
         )
 
-        return encoded_renders_dict, rendered_images
+        if return_views:
+            views = {"elev": elev, "azim": azim, "geo_elev": geo_elev, "geo_azim": geo_azim}
+            return encoded_renders_dict, rendered_images, views
+        else:
+            return encoded_renders_dict, rendered_images

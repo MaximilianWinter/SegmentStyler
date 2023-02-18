@@ -23,7 +23,8 @@ class PartSegmenter():
                  part_names=["back", "seat", "leg", "arm"],
                  sseg_count=25,
                  partglot_data_dir=LOCAL_DATA_PATH / "partglot",
-                 partglot_model_path=LOCAL_MODELS_PATH / "partglot_pn_agnostic.ckpt"):
+                 partglot_model_path=LOCAL_MODELS_PATH / "partglot_pn_aware.ckpt",
+                 prompts=None):
         self.partglot_data_dir, self.partglot_model_path = partglot_data_dir, partglot_model_path
         self.partglot, self.partglot_dm = self._load_partglot()
         self.label_cmap = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff]
@@ -31,6 +32,7 @@ class PartSegmenter():
         self.sseg_count = sseg_count
         self.use_sseg_gt = False
         self.part_names = part_names
+        self.prompts = prompts
         print(f"PartSegmenter initialized with\n- sseg_count: {sseg_count}\n- partglot_data_dir: {partglot_data_dir}\n- partglot_model_path: {partglot_model_path}\n")
         
     def run_from_ref_data(self, sample_idx:int, use_sseg_gt:bool=True, cluster_tgt:str="vertices") -> tuple:
@@ -108,8 +110,9 @@ class PartSegmenter():
         self.use_sseg_gt = use_sseg_gt
         self.ref_sseg_data, self.ref_mask_data = self._load_partglot_ref(sample_idx)
         self.mesh = mesh if mesh else self.ref_sseg_data
-        self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt, bsp_idx=bsp_idx)
-        self.sseg_count = self.pc2sup_segs.max() + 1 
+        if not use_sseg_gt:
+            self.sup_segs, self.pc2sup_segs = self._get_ssegs(self.mesh, cluster_tgt=cluster_tgt, bsp_idx=bsp_idx)
+            self.sseg_count = self.pc2sup_segs.max() + 1 
         self._set_predict_input(self.use_sseg_gt)
         self.sup_segs2label = self._predict_ssegs2label()
         self.pc2label = self._get_pc2label()
@@ -147,7 +150,7 @@ class PartSegmenter():
             self.ssegs_batch, self.mask_batch = ssegs2input(self.sup_segs)
             
     def _predict_ssegs2label(self):
-        return predict_ssegs2label(self.ssegs_batch, self.mask_batch, self.partglot_dm.word2int, self.partglot, self.part_names)
+        return predict_ssegs2label(self.ssegs_batch, self.mask_batch, self.partglot_dm.word2int, self.partglot, self.part_names, self.prompts)
     
     def _get_pc2label(self):
         return extract_pc2label(self.sup_segs2label)

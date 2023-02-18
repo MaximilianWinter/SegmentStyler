@@ -1,16 +1,16 @@
 import torch
 import numpy as np
-from sklearn.cluster import KMeans, DBSCAN, SpectralClustering
 
 from src.utils.processing import zip_arrays
 from src.partglot.datamodules.partglot_datamodule import PartglotDataModule
 from src.partglot.models.pn_agnostic import PNAgnostic
+from src.partglot.models.pn_aware import PNAware
 from src.utils.utils import device
 from src.partglot.utils.processing import cluster_supsegs, vstack2dim, convert2np
 from src.partglot.utils.neural_utils import tokenizing
 
 
-def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", batch_size=1):
+def get_loaded_model(data_dir, model_path="models/partglot_pn_aware.ckpt", batch_size=1):
     datamodule = PartglotDataModule(batch_size=batch_size,
         only_correct=True,
         only_easy_context=False,
@@ -21,17 +21,24 @@ def get_loaded_model(data_dir, model_path="models/partglot_pn_agnostic.ckpt", ba
         balance=True,
         data_dir=data_dir)
 
-    model = PNAgnostic(text_dim=64,
-            embedding_dim=100,
-            sup_segs_dim=64,
-            lr=1e-3,
-            data_dir=data_dir,
-            word2int=datamodule.word2int,
-            total_steps=1,
-            measure_iou_every_epoch=True,
-            save_pred_label_every_epoch=False)
+    if 'agnostic' in str(model_path):
+        model_class = PNAgnostic
+    elif 'pn_aware' in str(model_path):
+        model_class = PNAware
+    else:
+        raise ValueError("Invalid model path provided. Please check that the path contains either 'agnostic' or 'pn_aware' and try again.")
 
-    ckpt = torch.load(model_path)
+    model = model_class(text_dim=64,
+                embedding_dim=100,
+                sup_segs_dim=64,
+                lr=1e-3,
+                data_dir=data_dir,
+                word2int=datamodule.word2int,
+                total_steps=1,
+                measure_iou_every_epoch=True,
+                save_pred_label_every_epoch=False)
+
+    ckpt = torch.load(model_path, map_location="cpu")
     if "state_dict" in ckpt:
         # print("write state dict")
         ckpt = ckpt["state_dict"]
@@ -59,14 +66,17 @@ def preprocess_point_cloud(mesh, cluster_method="kmeans", cluster_tgt="normals",
         raise NotImplementedError
     
     if cluster_method == "dbscan":
+        from sklearn.cluster import DBSCAN
         clusterizer  = DBSCAN(eps=1.25)
     elif cluster_method == "kmeans":
+        from sklearn.cluster import KMeans
         clusterizer = KMeans(n_clusters=n_ssseg_custom, random_state=0)
     elif cluster_method == "spectral_clustering":
+        from sklearn.cluster import SpectralClustering
         clusterizer = SpectralClustering(n_clusters=n_ssseg_custom, random_state=0)
     else:
         raise NotImplementedError
-    
+        
     pc2sup_segs_kmeans = clusterizer.fit(cluster_tgt).labels_
     sup_segs, pc2sup_segs = cluster_supsegs(pc2sup_segs_kmeans, coordinates)
     
@@ -77,22 +87,37 @@ def ssegs2input(sup_segs):
     mask_batch = torch.from_numpy(np.array([[np.ones(data_batch.shape[2])]])).float().to(device) 
     return data_batch, mask_batch
 
-def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=["back", "seat", "leg", "arm"]):
+def predict_ssegs2label(ssegs_batch, mask_batch, word2int, partglot, part_names=["back", "seat", "leg", "arm"], prompts=None):
     attn_maps = []
-    for pn in part_names:
-        text_embeddings = tokenizing(word2int, f"chair with a {pn}").to(device)[None].expand(
+    
+    if prompts is None:
+        prompts = [f"chair with a {pn}" for pn in part_names]
+        
+    # tokenizes part indication, if PNAware    
+    if 'PNAware' in str(partglot):
+        part_indicator = torch.tensor([tokenizing(word2int, pn) for pn in part_names])[None].to(device).expand(1,-1)
+    else:
+        part_indicator = None
+        
+    for prompt in prompts:
+        text_embeddings = tokenizing(word2int, prompt).to(device)[None].expand(
             1, -1
         )
+
         tmp = partglot.forward(
-            ssegs_batch, # custom_ssegs_batch / batch_data
-            mask_batch, # custom_mask_batch / mask_data
-            text_embeddings, True)
+            ssegs_batch, 
+            mask_batch, 
+            text_embeddings,
+            part_indicator,
+            True)
         attn_maps.append(tmp)
         
-    attn_maps_concat = torch.cat(attn_maps).max(0)[1].cpu().numpy()
-
-    sup_segs2label = np.squeeze(attn_maps_concat)
-    return sup_segs2label
+    # idx: part indication index, meaning that
+    # PNAware gets the max index acroos all text embeddings and part indicators
+    # while PNAgnostic does it accross all text embeddings only
+    idx = 2 if 'PNAware' in str(partglot) else 0
+    sup_segs2label = np.unique(torch.cat(attn_maps).max(idx)[1].cpu().numpy(), axis=0)
+    return np.squeeze(sup_segs2label)
 
 
 def extract_pc2label(ssegs2label):

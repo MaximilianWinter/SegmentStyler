@@ -19,10 +19,16 @@ BSP_DATA_DIR = BASELINES_PATH / "BSP-NET-pytorch/samples/bsp_ae_out" # dir stori
 PC_DATA_PATH = BASELINES_PATH / "BSP-NET-pytorch/data/data_per_category/03001627_chair/03001627_vox256_img_test.hdf5" # path to the attached point cloud data.
 OUTPUT_DIR = LOCAL_DATA_PATH / "preprocess_bspnet" # dir to save outputs from this preprocessing code.
 
+
 def rotate_pointcloud(pc, r=[[0,0,-1], [0,1,0], [-1,0,0.]]):
     # To align pointclouds to bspnet outputs
     rot = np.array(r)
     rot_pc = pc @ rot.transpose()
+    return rot_pc
+
+def unrotate_pointcloud(pc, r=[[0,0,-1], [0,1,0], [-1,0,0.]]):
+    rot = np.array(r)
+    rot_pc = pc @ rot
     return rot_pc
 
 def normalize_pointcloud(pc, boundary="cube"):
@@ -40,6 +46,45 @@ def normalize_pointcloud(pc, boundary="cube"):
         pc = pc / scale
 
     return dict(pc=pc, offset=offset, scale=scale)
+
+def denormalize_pointcloud(pc, offset, scale):
+    pc = pc + offset
+    pc = pc * scale
+    return pc
+
+def transform_pointcloud(stacked_pc:np.array) -> dict:
+    """
+    Transform a raw point cloud (e.g., from ShapeNet) to
+    be fed into PartGlot pipeline.
+    
+    Parameters:
+        stacked_pc (np.array): Input point cloud in a stacked
+        fashion with shape (n, 3), where n is the number of 
+        oints in the point cloud.
+
+    Returns:
+        dict: A dictionary containing the transformed point
+        cloud, and the parameters required to undo the
+        transformation.
+    """
+
+    rotated_pc = rotate_pointcloud(stacked_pc)
+    normalized_pc = normalize_pointcloud(rotated_pc)
+    return dict(pc=normalized_pc['pc'], offset=normalized_pc['offset'], scale=normalized_pc['scale'])
+
+def untransform_pointcloud(transformed_pc:dict) -> np.array:
+    """
+    Undo transformation for PartGlot pipeline.
+
+    Parameters:
+        transformed_pc (dict): Output dictionary from transform_pointcloud method.
+
+    Returns:
+        np.array: The untransformed point cloud.
+    """
+    denormalized_pc = denormalize_pointcloud(transformed_pc['pc'], transformed_pc['offset'], transformed_pc['scale'])
+    denorm_derot_pc = unrotate_pointcloud(denormalized_pc)
+    return denorm_derot_pc
 
 def padding_pointcloud(pc, max_num_points=512, seed=63):
     # To make # of points in each super-segs. be 512.

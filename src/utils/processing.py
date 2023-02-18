@@ -11,7 +11,7 @@ from src.data.mesh import Mesh
 from src.utils.Normalization import MeshNormalizer
 from src.utils.trainer import Trainer
 from src.utils.export import export_final_results
-from src.utils.utils import report_process
+from src.utils.utils import report_process, device
 
 
 def set_seed(seed):
@@ -49,9 +49,16 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     set_seed(args.seed)
 
     # LOAD MESH AND MODEL
-    base_mesh = Mesh(args.obj_path)
+    dataset = config["dataset"](args.prompts, args.noisy_masks)
+    data_dict = dataset[args.sample]
+    dataset.move_batch_to_device(data_dict, device)
+    if "labels" in data_dict.keys():
+        dataset.visualize_predicted_maps(data_dict["mesh"].vertices.cpu().numpy(), data_dict["labels"], log_path.joinpath("part_map.png"))
+        wandb.log({'part_map': wandb.Image(str(log_path.joinpath("part_map.png")))}, step=0)
+
+    base_mesh = data_dict["mesh"]
     MeshNormalizer(base_mesh)()
-    text2mesh_model = config["model"](args, base_mesh)
+    text2mesh_model = config["model"](args, data_dict)
 
     if args.weights_path != "new":
         text2mesh_model.mlp = torch.load(args.weights_path)
@@ -88,6 +95,13 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     # TEXT PROMPT
     if not args.prompts:
         raise ValueError("No prompts given.")
+    else:
+        prompt_path = log_path.joinpath("prompts.txt")
+        with open(prompt_path, "w") as fp:
+            for prompt in args.prompts:
+                fp.write(prompt+"\n")
+
+    log_path.joinpath("sample_id.txt").write_text(str(args.sample))
 
     trainer = Trainer(
         text2mesh_model, network_input, args.prompts, optimizer, lr_scheduler, loss_func

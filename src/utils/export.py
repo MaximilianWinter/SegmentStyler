@@ -70,16 +70,15 @@ def export_final_results(dir, losses, model, wandb):
         else:
             model.base_mesh.vertices = model.base_mesh_vertices.detach().cpu()
 
-        objbase, extension = os.path.splitext(os.path.basename(model.args.obj_path))
         model.base_mesh.export(
-            os.path.join(dir, f"{objbase}_final.obj"), color=final_color
+            os.path.join(dir, f"final_mesh.obj"), color=final_color
         )
         # Run renders
         if model.args.save_render:
             save_rendered_results(model.args, dir, final_color, model.base_mesh)
 
         if not model.args.no_mesh_log:
-            log_mesh_to_wandb(dir, objbase, wandb)
+            log_mesh_to_wandb(dir, wandb)
 
         # Save final losses
         torch.save(torch.tensor(losses), os.path.join(dir, "losses.pt"))
@@ -94,21 +93,21 @@ def export_final_results(dir, losses, model, wandb):
 
 
 
-def log_mesh_to_wandb(dir, objbase, wandb):
-    with open(os.path.join(dir, f"{objbase}_final.obj")) as fp:
+def log_mesh_to_wandb(dir, wandb):
+    with open(os.path.join(dir, f"final_mesh.obj")) as fp:
         mesh_dict = trimesh.exchange.obj.load_obj(fp)
 
     trimesh_mesh = trimesh.Trimesh(**mesh_dict)
     glb_output = trimesh.exchange.gltf.export_glb(trimesh_mesh)
 
-    with open(os.path.join(dir, f"{objbase}_final.glb"), "wb") as fp:
+    with open(os.path.join(dir, f"final_mesh.glb"), "wb") as fp:
         fp.write(glb_output)
 
     wandb.log(
-        {"output_mesh": [wandb.Object3D(os.path.join(dir, f"{objbase}_final.glb"))]}
+        {"output_mesh": [wandb.Object3D(os.path.join(dir, f"final_mesh.glb"))]}
     )
 
-    os.unlink(os.path.join(dir, f"{objbase}_final.glb"))
+    os.unlink(os.path.join(dir, f"final_mesh.glb"))
 
 
 def save_rendered_results(args, dir, final_color, mesh):

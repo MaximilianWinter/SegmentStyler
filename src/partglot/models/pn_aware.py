@@ -79,7 +79,7 @@ class PNAware(PNAgnostic):
         logits = outputs["logits"]
         loss = smoothed_cross_entropy(logits, targets)
 
-        if self.hparams["xnt_reg"]:
+        if "xnt_reg" in self.hparams.keys():
             xnt_loss = xnt_reg_loss(outputs["attn_along_pn"], segs_mask)
             loss = loss + self.hparams.xnt_reg_weights * xnt_loss
 

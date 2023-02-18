@@ -1,4 +1,5 @@
 import kaolin as kal
+import trimesh
 import torch
 from src.utils.utils import device
 from src.utils.mesh import get_texture_map_from_color, get_face_attributes_from_color, standardize_mesh, normalize_mesh, add_vertices
@@ -6,14 +7,34 @@ import copy
 import numpy as np
 import PIL
 
+class MeshContainer:
+    def __init__(self, vertices, faces, vertex_normals, face_normals):
+        self.vertices = torch.tensor(vertices).float()
+        self.faces = torch.tensor(faces).long()
+        self.vertex_normals = torch.tensor(vertex_normals).float()
+        self.face_normals = torch.tensor(face_normals).float()
+
 class Mesh():
-    def __init__(self,obj_path,color=torch.tensor([0.0,0.0,1.0])):
-        if ".obj" in obj_path:
-            mesh = kal.io.obj.import_mesh(obj_path, with_normals=True)
-        elif ".off" in obj_path:
-            mesh = kal.io.off.import_mesh(obj_path)
+    def __init__(self,path_or_trimesh,color=torch.tensor([0.0,0.0,1.0]), use_trimesh=False):
+        if isinstance(path_or_trimesh, str):
+            obj_path = path_or_trimesh
+            if ".obj" in obj_path:
+                if use_trimesh:
+                    with open(obj_path) as fp:
+                        mesh_dict = trimesh.exchange.obj.load_obj(fp, include_color=False, include_texture=False)
+                    tri_mesh = trimesh.Trimesh(**mesh_dict)
+                    mesh = MeshContainer(tri_mesh.vertices, tri_mesh.faces, tri_mesh.vertex_normals, tri_mesh.face_normals)
+                else:
+                    mesh = kal.io.obj.import_mesh(obj_path, with_normals=True)
+            elif ".off" in obj_path:
+                mesh = kal.io.off.import_mesh(obj_path)
+            else:
+                raise ValueError(f"{obj_path} extension not implemented in mesh reader.")
+        elif isinstance(path_or_trimesh, trimesh.Trimesh):
+            tri_mesh = path_or_trimesh
+            mesh = MeshContainer(tri_mesh.vertices, tri_mesh.faces, tri_mesh.vertex_normals, tri_mesh.face_normals)
         else:
-            raise ValueError(f"{obj_path} extension not implemented in mesh reader.")
+            raise TypeError("path_or_trimesh must be of type str or trimesh.Trimesh.")
         self.vertices = mesh.vertices.to(device)
         self.faces = mesh.faces.to(device)
         self.vertex_normals = None
@@ -21,7 +42,7 @@ class Mesh():
         self.texture_map = None
         self.face_uvs = None
         self.vertex_colors = None
-        if ".obj" in obj_path:
+        if (isinstance(path_or_trimesh, str) and ".obj" in path_or_trimesh) or isinstance(path_or_trimesh, trimesh.Trimesh):
             # if mesh.uvs.numel() > 0:
             #     uvs = mesh.uvs.unsqueeze(0).to(device)
             #     face_uvs_idx = mesh.face_uvs_idx.to(device)

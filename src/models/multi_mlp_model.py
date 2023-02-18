@@ -9,8 +9,8 @@ from src.utils.utils import device, gaussian3D
 
 
 class Text2MeshMultiMLP(Text2MeshExtended):
-    def __init__(self, args, base_mesh):
-        super().__init__(args, base_mesh)
+    def __init__(self, args, data_dict):
+        super().__init__(args, data_dict)
 
         self.mlp = None
         mlp_dict = {}
@@ -26,14 +26,14 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
     def forward(self, vertices):
         # Prop. through MLPs
-        pred_rgb, pred_normal = self.prop_through_mlps(vertices, self.gaussian_weights)
+        pred_rgb, pred_normal = self.prop_through_mlps(vertices)
 
         # Rendering, Augmentations and CLIP encoding per prompt
         (
             encoded_renders_dict_per_prompt,
             rendered_images_per_prompt,
             color_reg,
-        ) = self.render_augment_encode(vertices, pred_rgb, pred_normal, self.gaussian_weights)
+        ) = self.render_augment_encode(vertices, pred_rgb, pred_normal)
 
         return {
             "encoded_renders": encoded_renders_dict_per_prompt,
@@ -41,7 +41,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             "color_reg": color_reg,
         }
 
-    def render_and_encode(
+    def biased_render_and_encode(
         self, center_point, distance, covariances, principal_axes, num_vertices
     ):
         # Rendering
@@ -89,7 +89,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
         return encoded_renders_dict, rendered_images
 
-    def prop_through_mlps(self, vertices, gauss_weights):
+    def prop_through_mlps(self, vertices):
         # Prop. through MLPs
         pred_rgb = None
         pred_normal = None
@@ -97,7 +97,7 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             pred_rgb_per_prompt, pred_normal_per_prompt = mlp(vertices)
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                weight = gauss_weights[prompt]
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             pred_rgb_masked = pred_rgb_per_prompt * weight
@@ -122,14 +122,15 @@ class Text2MeshMultiMLP(Text2MeshExtended):
 
         return pred_rgb, pred_normal
 
-    def render_augment_encode(self, vertices, pred_rgb, pred_normal, gauss_weights):
+    def render_augment_encode(self, vertices, pred_rgb, pred_normal):
         # Rendering, Augmentations and CLIP encoding per prompt
         encoded_renders_dict_per_prompt = {}
         rendered_images_per_prompt = None
-        for prompt in self.args.prompts:
+        
+        for i, prompt in enumerate(self.args.prompts):
             inv_mask = 1 - self.masks[prompt]
             if self.args.gaussian_blending:
-                weight = gauss_weights[prompt]
+                weight = self.gaussian_weights[prompt]
             else:
                 weight = inv_mask
             # Get stylized mesh
@@ -141,21 +142,32 @@ class Text2MeshMultiMLP(Text2MeshExtended):
             else:
                 self.stylize_mesh(pred_rgb, pred_normal)
 
-            center_point = torch.mean(
-                vertices[inv_mask[:, 0].bool()], dim=0
-            )  # we use the part's COM
-            distance = (
-                torch.sum((vertices[inv_mask[:, 0].bool()] - center_point) ** 2, dim=1)
-                .sqrt()
-                .max()
-                * 2
-            )  # we use 2-times the part's expansion
-            (U, S, V) = torch.pca_lowrank(vertices[inv_mask[:, 0].bool()])
-            m = vertices[inv_mask[:, 0].bool()].shape[0]
-            encoded_renders_dict, rendered_images = self.render_and_encode(
-                center_point, distance, S, V, m
-            )
+            if self.args.biased_views:
+                if inv_mask.bool().any():
+                    center_point = torch.mean(
+                        vertices[inv_mask[:, 0].bool()], dim=0
+                    )  # we use the part's COM
+                    distance = (
+                        torch.sum((vertices[inv_mask[:, 0].bool()] - center_point) ** 2, dim=1)
+                        .sqrt()
+                        .max()
+                        * 2
+                    )  # we use 2-times the part's expansion
+                    (U, S, V) = torch.pca_lowrank(vertices[inv_mask[:, 0].bool()])
+                    m = vertices[inv_mask[:, 0].bool()].shape[0]
+                    encoded_renders_dict, rendered_images = self.biased_render_and_encode(
+                        center_point, distance, S, V, m
+                    )
+                else:
+                    print("Could not bias view as part is not present in mask.")
+                    encoded_renders_dict, rendered_images = self.render_and_encode()
 
+            else:
+                if i == 0:
+                    encoded_renders_dict, rendered_images, views = self.render_and_encode(return_views=True)
+                else:
+                    encoded_renders_dict, rendered_images = self.render_and_encode(views=views)
+            
             encoded_renders_dict_per_prompt[prompt] = encoded_renders_dict
             if rendered_images_per_prompt is None:
                 rendered_images_per_prompt = rendered_images

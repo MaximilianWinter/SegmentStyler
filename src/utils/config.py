@@ -5,7 +5,6 @@ def get_parser():
     parser = argparse.ArgumentParser()
 
     # Most relevant
-    parser.add_argument('--obj_path', type=str, default='data/chair_testmesh.obj')
     parser.add_argument('--prompts', action="append")
     parser.add_argument('--output_dir', type=str, default='output/')
 
@@ -69,7 +68,6 @@ def get_parser():
     parser.add_argument('--partglot_data_dir', type=str, default="data/partglot")
     
     # Custom
-    parser.add_argument('--mask_path', type=str, default="data/chair_testmesh_mask.jsonc")
     parser.add_argument('--reg_lambda', type=float, default=0)
     parser.add_argument('--optimize_displacement',
                         default=False, action="store_true")
@@ -85,5 +83,12 @@ def get_parser():
     parser.add_argument('--noisy_masks', action="store_true", default=False)
     parser.add_argument('--gaussian_blending', action="store_true", default=False)
     parser.add_argument('--final_gaussian_blending', action="store_true", default=False)
+    parser.add_argument('--biased_views', action="store_true", default=False)
+    parser.add_argument('--use_gt_masks', action="store_true", default=False)
+    
+    # data
+    parser.add_argument('--dataset', type=str, default="PreprocessedShapeNet")
+    parser.add_argument('--sample', type=int, default=0)
+    parser.add_argument('--eval_version', type=int, default=None)
 
     return parser
