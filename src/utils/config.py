@@ -89,5 +89,6 @@ def get_parser():
     # data
     parser.add_argument('--dataset', type=str, default="PreprocessedShapeNet")
     parser.add_argument('--sample', type=int, default=0)
+    parser.add_argument('--eval_version', type=int, default=None)
 
     return parser

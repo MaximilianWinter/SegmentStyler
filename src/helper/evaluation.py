@@ -13,6 +13,20 @@ from src.utils.render import get_render_resolution
 from src.data.mesh import Mesh
 from src.data.partglot_data import PartGlotData
 
+class EvalVersionConverter:
+    
+    def __init__(self):
+        self.mapping = {}
+        samples = Path("data/samples.txt").read_text().splitlines()
+        combined_prompts = Path("data/new_combined_sentences.txt").read_text().splitlines()
+        uncombined_prompts = Path("data/new_uncombined_sentences.txt").read_text().splitlines()
+        
+        version_id = 0
+        for i, sample_id in enumerate(samples):
+            for j, combined_prompt in enumerate(combined_prompts):
+                uncombined_list = uncombined_prompts[4*j:4*(j+1)]
+                self.mapping[version_id] = (int(sample_id), uncombined_list, combined_prompt)
+                version_id += 1
 
 class Evaluator:
     def __init__(
@@ -179,7 +193,7 @@ class Evaluator:
             self.id_to_correct_part_prompts[idx] = real_part_prompts
             self.id_to_short_part_prompts[idx] = short_part_prompts
 
-    def get_encoded_img(self, base_path):
+    def get_encoded_img(self, base_path, show=False):
 
         tri_mesh = trimesh.load(base_path.joinpath("final_mesh.obj"))
         mesh = Mesh(str(base_path.joinpath("final_mesh.obj")), use_trimesh=True)
@@ -194,7 +208,7 @@ class Evaluator:
         mesh.vertex_colors = rgb
 
         img = self.renderer.render_single_view(
-            mesh, elev=np.pi / 6, azim=-np.pi / 4, show=False
+            mesh, elev=np.pi / 6, azim=-np.pi / 4, show=show, lighting=False,
         )
         clip_image = self.clip_transform(img)
         encoded_img = self.clip_model.encode_image(clip_image.to(self.device))
@@ -224,7 +238,7 @@ class Evaluator:
                 submesh.vertex_colors = rgb
 
                 img = self.renderer.render_single_view(
-                submesh, elev=np.pi / 6, azim=-np.pi / 4, show=show
+                submesh, elev=np.pi / 6, azim=-np.pi / 4, show=show, lighting=False
                 )
                 clip_image = self.clip_transform(img)
                 encoded_img = self.clip_model.encode_image(clip_image.to(self.device))
@@ -259,14 +273,21 @@ class Evaluator:
         return combined_prompt, part_prompts, short_part_prompts
 
     @staticmethod
-    def get_avg_cosine_sim(df, id_to_prompt, combined_prompts=True, verbose=True):
+    def get_avg_cosine_sim(df, id_to_prompt, combined_prompts=True, verbose=True, operation="mean"):
         cosine_sims = []
         for i in df.index:
             if combined_prompts:
                 cosine_sims.append(df[combined_prompts].at[i, id_to_prompt[i]])
             else:
                 vals = [df[combined_prompts].at[i, part_prompt] for part_prompt in id_to_prompt[i]]
-                cosine_sims.append(np.nanmean(vals))
+                if operation == "mean":
+                    cosine_sims.append(np.nanmean(vals))
+                elif operation == "min":
+                    cosine_sims.append(np.nanmin(vals))
+                elif operation == "max":
+                    cosine_sims.append(np.nanmax(vals))
+                else:
+                    raise ValueError("operation not known")
 
         if verbose:
             print(f"cosine sim: {np.nanmean(cosine_sims):.3f} +- {np.nanstd(cosine_sims):.3f}")
