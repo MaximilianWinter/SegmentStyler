@@ -7,8 +7,8 @@ from src.utils.utils import device, gaussian3D
 from kmeans_pytorch import kmeans
 
 class Text2MeshLearnedBlending(Text2MeshMultiMLP):
-    def __init__(self, args, base_mesh):
-        super().__init__(args, base_mesh)
+    def __init__(self, args, data_dict):
+        super().__init__(args, data_dict)
 
         self.gauss_estimator = GaussEstimator(
             args, input_dim=self.input_dim, output_dim=3, n_prompts=len(args.prompts)
