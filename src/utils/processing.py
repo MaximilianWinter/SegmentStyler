@@ -66,6 +66,8 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
     # DEFINE OPTIMIZER
     if args.optimize_gauss_estimator:
         params = text2mesh_model.gauss_estimator.parameters()
+    elif args.optimize_learned_labels:
+        params = [text2mesh_model.learned_labels]
     else:
         params = text2mesh_model.mlp.parameters()
 
@@ -125,6 +127,10 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
 
         if i % 100 == 0:
             loss_check = report_process(args, i, loss, loss_check, losses)
+        
+        if trainer.model.stop_loop:
+            print("Flag for stopping optimization was set.")
+            break
 
 
     export_final_results(log_path, losses, text2mesh_model, wandb)

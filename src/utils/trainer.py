@@ -34,6 +34,8 @@ class Trainer():
         
         if self.model.args.optimize_gauss_estimator:
             params = self.model.gauss_estimator.parameters()
+        elif self.model.args.optimize_learned_labels:
+            params = [self.model.learned_labels]
         else:
             params = self.model.mlp.parameters()
 
