@@ -5,7 +5,7 @@ import kaolin as kal
 from src.models.extended_model import Text2MeshExtended
 from src.submodels.neural_style_field import NeuralStyleField
 from src.submodels.special_layers import MaskBackward
-from src.utils.utils import device, gaussian3D
+from src.utils.utils import device
 
 
 class Text2MeshMultiMLP(Text2MeshExtended):

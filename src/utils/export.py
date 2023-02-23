@@ -8,7 +8,7 @@ import trimesh
 
 from src.submodels.render import Renderer
 from src.utils.Normalization import MeshNormalizer
-from src.utils.utils import device, gaussian3D
+from src.utils.utils import device
 
 
 def export_final_results(dir, losses, model, wandb):
@@ -17,12 +17,12 @@ def export_final_results(dir, losses, model, wandb):
             pred_rgb = None
             pred_normal = None
             try:
-                com_input = torch.cat([t.unsqueeze(0) for t in model.coms.values()])
+                unsqueezed_coms = []
+                for com_list in model.coms.values():
+                    unsqueezed_coms.extend([com.unsqueeze(0) for com in com_list])
+                com_input = torch.cat(unsqueezed_coms)
                 mu_displacements = model.gauss_estimator(com_input)
                 print(f"Mu displacements: {mu_displacements}")
-                normalized_weights = model.get_normalized_weights(model.base_mesh_vertices, mu_displacements)
-
-                model.gaussian_weights = normalized_weights
             except AttributeError:
                 print("There is no GaussEstimator.")
 

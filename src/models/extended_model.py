@@ -3,7 +3,6 @@ import jstyleson
 
 from src.submodels.special_layers import NumericsBackward
 from src.models.original_model import Text2MeshOriginal
-from src.utils.utils import gaussian3D
 
 
 class Text2MeshExtended(Text2MeshOriginal):

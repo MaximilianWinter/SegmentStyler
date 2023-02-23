@@ -5,10 +5,12 @@ from kaolin.metrics.pointcloud import sided_distance
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from kmeans_pytorch import kmeans
+import copy
 
 from src.data.mesh import Mesh
 from src.partglot.wrapper import PartSegmenter
 from src.utils.utils import gaussian3D, device
+from src.utils.Normalization import MeshNormalizer
 from src.partglot.utils.partglot_bspnet_preprocess import (
     normalize_pointcloud,
     rotate_pointcloud,
@@ -210,6 +212,9 @@ class PartGlotData(torch.utils.data.Dataset):
         sigmas = {}
         coms = {}
 
+        mesh = copy.deepcopy(mesh)
+        MeshNormalizer(mesh)()
+
         for prompt, mask in masks.items():
             inv_mask = 1 - mask
             part_vertices = mesh.vertices[inv_mask[:, 0].bool()].detach()
@@ -239,8 +244,8 @@ class PartGlotData(torch.utils.data.Dataset):
                 )
                 gauss_weight = gaussian3D(mesh.vertices, center, Sigma)
 
-                sigmas[prompt] = Sigma
-                coms[prompt] = center
+                sigmas[prompt] = [Sigma]
+                coms[prompt] = [center]
 
             weight = torch.zeros_like(inv_mask)
             for i in range(weight.shape[1]):
