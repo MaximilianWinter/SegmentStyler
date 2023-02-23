@@ -64,8 +64,13 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
         text2mesh_model.mlp = torch.load(args.weights_path)
 
     # DEFINE OPTIMIZER
+    if args.optimize_gauss_estimator:
+        params = text2mesh_model.gauss_estimator.parameters()
+    else:
+        params = text2mesh_model.mlp.parameters()
+
     optimizer = torch.optim.Adam(
-        text2mesh_model.mlp.parameters(), args.learning_rate, weight_decay=args.decay
+        params, args.learning_rate, weight_decay=args.decay
     )
     activate_scheduler = (
         args.lr_decay < 1 and args.decay_step > 0 and not args.lr_plateau
