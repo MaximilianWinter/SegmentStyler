@@ -104,3 +104,9 @@ def multi_mlp_loss(out_dict, encoded_text_prompts, args, clipavg=None):
         losses_dict_per_prompt[args.prompts[i]] = losses_dict
 
     return losses_dict_per_prompt
+
+def label_propagation_loss(out_dict, _, args, clipavg=None):
+    label_prop_energy = out_dict["label_prop_energy"]
+    losses_dict_per_prompt = {"all": {"label_prop_energy": label_prop_energy}}
+
+    return losses_dict_per_prompt

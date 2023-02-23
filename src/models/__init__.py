@@ -3,3 +3,4 @@ from .extended_model import *
 from .backward_masking_model import *
 from .multi_mlp_model import *
 from .learned_blending_model import *
+from .label_propagation_model import *
