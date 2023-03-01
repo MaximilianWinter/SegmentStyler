@@ -31,8 +31,15 @@ class Trainer():
                     loss.backward(retain_graph=True)
 
         self.optimizer.step()
+        
+        if self.model.args.optimize_gauss_estimator:
+            params = self.model.gauss_estimator.parameters()
+        elif self.model.args.optimize_learned_labels:
+            params = [self.model.learned_labels]
+        else:
+            params = self.model.mlp.parameters()
 
-        for param in self.model.mlp.parameters():
+        for param in params:
             param.requires_grad = True
         
         if self.lr_scheduler is not None:

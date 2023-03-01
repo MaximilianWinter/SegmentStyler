@@ -53,6 +53,8 @@ class Text2MeshOriginal(nn.Module):
             assert len(self.args.background) == 3
             self.background = torch.tensor(self.args.background).to(device)
 
+        self.stop_loop = False
+        
     def forward(self, vertices):
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)

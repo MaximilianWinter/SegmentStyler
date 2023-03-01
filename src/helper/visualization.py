@@ -1,9 +1,15 @@
 from k3d.transform import process_transform_arguments
-import random
 import numpy as np
 import k3d
 from faker import Factory
 import matplotlib.pyplot as plt
+import trimesh
+import torch
+import kaolin as kal
+import torchvision.transforms as T
+
+from src.data.mesh import Mesh
+from src.submodels.render import Renderer
 
 fake = Factory.create()
 get_rnd_color = lambda: int(fake.hex_color().replace('#', '0x'), 16)
@@ -117,3 +123,46 @@ def plot_pointclouds(pointcloud_list, psize=0.01, elev=45, azim=-70, start_idx=0
 
 
     plt.show()
+
+class GifCreator:
+
+    def __init__(self, res=512):
+        """Small class for exporting animated GIFs from objs.
+        :param res: int, output resolution
+        """
+        self.renderer = Renderer(dim=(res, res))
+        self.transform = T.ToPILImage()
+
+    def export_gif(self, base_path, num_views=24):
+        """
+        Expects the mesh to be stored in base_path/final_mesh.obj.
+        Stores animated GIF in base_path.
+        :param base_path: pathlib.Path object
+        :param num_views: int, number of views to be rendered
+        """
+        tri_mesh = trimesh.load(base_path.joinpath("final_mesh.obj"))
+        mesh = Mesh(str(base_path.joinpath("final_mesh.obj")), use_trimesh=True)
+        rgb = (
+            torch.tensor(tri_mesh.visual.vertex_colors[:, :3] / 255.0)
+            .float()
+            .to(mesh.vertices.device)
+        )
+        mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
+            rgb.unsqueeze(0), mesh.faces
+        )
+        mesh.vertex_colors = rgb
+
+        azims = torch.linspace(0, 2*np.pi, num_views)
+        elevs = torch.tensor([torch.pi/6 for i in range(len(azims))])
+
+        imgs = self.renderer.render_given_front_views(mesh, elevs, azims, lighting=False, show=False, background=1)
+
+        pil_img = self.transform(imgs[0])
+        other_pil_imgs = [self.transform(img) for img in imgs[1:]]
+
+        try:
+            save_name = int(str(base_path).split("_")[-1]) # use version number as file name
+        except ValueError:
+            save_name = "out"
+
+        pil_img.save(base_path.joinpath(f"{save_name}.gif"), save_all=True, append_images=other_pil_imgs, duration=100, loop=0)

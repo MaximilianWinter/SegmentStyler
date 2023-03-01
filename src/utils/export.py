@@ -8,7 +8,7 @@ import trimesh
 
 from src.submodels.render import Renderer
 from src.utils.Normalization import MeshNormalizer
-from src.utils.utils import device, gaussian3D
+from src.utils.utils import device
 
 
 def export_final_results(dir, losses, model, wandb):
@@ -16,6 +16,16 @@ def export_final_results(dir, losses, model, wandb):
         if isinstance(model.mlp, torch.nn.ModuleDict):
             pred_rgb = None
             pred_normal = None
+            try:
+                unsqueezed_coms = []
+                for com_list in model.coms.values():
+                    unsqueezed_coms.extend([com.unsqueeze(0) for com in com_list])
+                com_input = torch.cat(unsqueezed_coms)
+                mu_displacements = model.gauss_estimator(com_input)
+                print(f"Mu displacements: {mu_displacements}")
+            except AttributeError:
+                print("There is no GaussEstimator.")
+
             for prompt, mlp_per_prompt in model.mlp.items():
                 pred_rgb_per_prompt, pred_normal_per_prompt = mlp_per_prompt(
                     model.base_mesh_vertices
@@ -37,6 +47,8 @@ def export_final_results(dir, losses, model, wandb):
                     pred_normal += pred_normal_masked
                 else:
                     pred_normal = pred_normal_masked
+
+                save_multiview_rendered_results(model.args, dir, weight, model.base_mesh, prompt)
         else:
             pred_rgb, pred_normal = model.mlp(model.base_mesh_vertices)
         pred_rgb = pred_rgb.detach().cpu()
@@ -73,6 +85,12 @@ def export_final_results(dir, losses, model, wandb):
 
     # Save final model
     torch.save(model.mlp, os.path.join(dir, "final_mlp.pt"))
+
+    try:
+        torch.save(model.gauss_estimator, os.path.join(dir, "final_gauss_estimator.pt"))
+    except AttributeError:
+        print("There is no GaussEstimator.")
+
 
 
 def log_mesh_to_wandb(dir, wandb):
@@ -143,3 +161,22 @@ def save_rendered_results(args, dir, final_color, mesh):
     img = torch.cat((img, alpha.unsqueeze(0)), dim=0)
     img = transforms.ToPILImage()(img)
     img.save(os.path.join(dir, f"final_cluster.png"))
+
+
+def save_multiview_rendered_results(args, dir, final_color, mesh, name=""):
+    kal_render = Renderer(
+            camera=kal.render.camera.generate_perspective_projection(
+                np.pi / 4, 1280 / 720
+            ).to(device),
+            dim=(1280, 720),
+        )
+
+    # Vertex colorings
+    mesh.face_attributes = kal.ops.mesh.index_vertices_by_faces(
+        final_color.unsqueeze(0).to(device), mesh.faces.to(device)
+    )
+    imgs = kal_render.render_uniform_views(mesh, 3)
+    for i, img in enumerate(imgs):
+        img = img[0].cpu()
+        img = transforms.ToPILImage()(img)
+        img.save(os.path.join(dir, f"{name}_{i}.png"))
