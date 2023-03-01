@@ -30,12 +30,7 @@ class Text2MeshLabelPropagation(Text2MeshMultiMLP):
         self.graph_laplacian  = torch.sparse.FloatTensor(i, v, torch.Size(shape)).to(device)
 
     def forward(self, vertices):
-        #trunc_labels = torch.clamp(self.learned_labels, 0, 1)
-        #normalized_labels = trunc_labels/trunc_labels.sum(dim=1).unsqueeze(1) # sum per vertex is 1
         normalized_labels = torch.softmax(self.learned_labels/1e-1, dim=1)
-        #label_argmax = torch.argmax(self.learned_labels, dim=1) 
-        #normalized_labels = torch.zeros_like(self.learned_labels)
-        #normalized_labels[:, label_argmax] = 1.
         temperature = 1e-9
         visualized_labels = torch.softmax(self.learned_labels/temperature, dim=1)
         normalized_weights = self.get_weights_per_prompt(visualized_labels) # N, 3 each mask, for each prompt
@@ -54,17 +49,6 @@ class Text2MeshLabelPropagation(Text2MeshMultiMLP):
             vertices, pred_rgb, pred_normal
         )
 
-        #label_prop_energy = None
-        #for i in range(normalized_labels.shape[1]):
-        #    y_vec = normalized_labels[:, i].unsqueeze(1) # N, 1
-        #    if label_prop_energy is None:
-        #        label_prop_energy = y_vec.T@torch.sparse.mm(self.graph_laplacian, y_vec)
-        #    else:
-        #        label_prop_energy += y_vec.T@torch.sparse.mm(self.graph_laplacian, y_vec)
-
-        #if (self.initial_labels != visualized_labels.int()).sum().item()/2 > 0.1*self.initial_labels.shape[0]:
-        #    label_prop_energy = 0
-        #else:
         lambda_flipped_labels = 1e-2
         label_prop_energy = (normalized_labels.T@torch.sparse.mm(self.graph_laplacian, normalized_labels)).diag().sum()
         if label_prop_energy < lambda_flipped_labels * (self.initial_labels != visualized_labels.int()).sum().item()/2:
