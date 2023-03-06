@@ -2,10 +2,10 @@
 ## Part-aware language-based mesh texture editing
 SegmentStyler is a framework for part-aware mesh texture editing that uses natural language and allows for separate customization of different mesh segments based on multiple text prompts, resulting in a coherent texture with the text input.
 
-
-| rainbow pattern arm<br>glowing iron leg<br>guy fawkes logo back<br>camo pattern seat | persian carpet arm<br>swiss cheese leg<br>desert sand back<br>fleur-de-lis pattern seat  | watermelon pattern arm<br>red leather leg<br>graffiti back<br>colorful crochet seat | snowflake pattern arm<br>metallic leg<br>honeycomb back<br>wooden seat |
-| ---- | ---- | ---- | --- |
 | ![Chair 1](/data/img/example_chair_1.gif) | ![Chair 12](/data/img/example_chair_2.gif) | ![Chair 3](/data/img/example_chair_3.gif) | ![Chair 4](/data/img/example_chair_4.gif) | 
+| ---- | ---- | ---- | --- |
+| rainbow pattern arm<br>glowing iron leg<br>guy fawkes logo back<br>camo pattern seat | persian carpet arm<br>swiss cheese leg<br>desert sand back<br>fleur-de-lis pattern seat  | watermelon pattern arm<br>red leather leg<br>graffiti back<br>colorful crochet seat | snowflake pattern arm<br>metallic leg<br>honeycomb back<br>wooden seat |
+
 
 ### Purpose of this repo
 
