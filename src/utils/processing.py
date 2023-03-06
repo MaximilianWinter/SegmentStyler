@@ -130,6 +130,8 @@ def train(args, config, wand_proj="dl3d", team="meshers"):
         
         if trainer.model.stop_loop:
             print("Flag for stopping optimization was set.")
+            for key, weights in trainer.model.gaussian_weights.items():
+                np.save(log_path.joinpath(f"learned_weights_{key}.npy"), weights.detach().cpu().numpy())
             break
 
 
