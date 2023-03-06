@@ -13,6 +13,11 @@ from src.utils.utils import device
 
 class Text2MeshOriginal(nn.Module):
     def __init__(self, args, data_dict):
+        """
+        This is a modularized implementation of the original text2mesh model.
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__()
         self.args = args
 
@@ -56,6 +61,11 @@ class Text2MeshOriginal(nn.Module):
         self.stop_loop = False
         
     def forward(self, vertices):
+        """
+        Forward pass.
+        @param vertices: torch.tensor, shape (N, 3)
+        @returns: dict, containing renderings and their encodings (in CLIP space) 
+        """
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
 
@@ -71,6 +81,12 @@ class Text2MeshOriginal(nn.Module):
         }
 
     def stylize_mesh(self, pred_rgb, pred_normal):
+        """
+        Stylizes the mesh by applying the predicted colors (and optionally displacements)
+        to its vertices.
+        @param pred_rgb, torch.tensor, shape (N, 3)
+        @param pred_normal, torch.tensor, shape (N, 3)
+        """
         self.base_mesh.face_attributes = (
             self.prior_color
             + kal.ops.mesh.index_vertices_by_faces(
@@ -90,6 +106,11 @@ class Text2MeshOriginal(nn.Module):
         MeshNormalizer(self.base_mesh)()
 
     def render_and_encode(self, return_views=False, views=None):
+        """
+        Wrapper function for rendering, applying augmentations and encoding.
+        @param return_views, bool (optional), if True it additionally returns the view points used for rendering
+        @param views, dict (optional), if given, these views are used for rendering
+        """
         # Rendering
         if views is not None:
             rendered_images, elev, azim = self.renderer.render_given_front_views(

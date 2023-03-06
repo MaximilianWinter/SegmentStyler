@@ -7,13 +7,20 @@ from src.models.original_model import Text2MeshOriginal
 
 class Text2MeshExtended(Text2MeshOriginal):
     def __init__(self, args, data_dict):
+        """
+        An extended version of text2mesh, that reads in given
+        part masks. It also contains features, that are not used
+        by default in our current implementation (color regularization, num_backward).
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__(args, data_dict)
 
         self.previous_pred_rgb = torch.zeros_like(self.default_color)
         self.initial_pred_rgb = None
         if self.args.use_gt_masks:
             self.masks = data_dict["gt_masks"]
-            # Gaussian weights not implemented yet for GT masks TODO
+            # Gaussian weights not implemented for GT masks
         else:
             self.masks = data_dict["masks"]
             self.gaussian_weights = data_dict["weights"]
@@ -22,6 +29,11 @@ class Text2MeshExtended(Text2MeshOriginal):
         self.num_backward = NumericsBackward.apply
 
     def forward(self, vertices):
+        """
+        Forward pass.
+        @param vertices: torch.tensor, shape (N, 3)
+        @returns: dict, containing renderings and their encodings (in CLIP space), addit
+        """
 
         # Prop. through MLP
         pred_rgb, pred_normal = self.mlp(vertices)
@@ -50,7 +62,7 @@ class Text2MeshExtended(Text2MeshOriginal):
 
     def get_color_reg_terms(self, pred_rgb):
         """
-        Extracts ground truth color regularizer.
+        Extracts color regularizer. Not used in our current architecture.
         """
         used_tensor = None
         if self.args.use_previous_prediction:
