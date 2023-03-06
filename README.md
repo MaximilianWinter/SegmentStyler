@@ -73,7 +73,7 @@ which were used for performing our ablation study.
 
 ### Miscellaneous
 
-The `notebooks` folder contains code snippets that we used during our development process. You can find a comprehensive index of these notebooks [here](/notebooks/notebooks_index.md). However, please note that the documentation within each notebook is currently limited and may not be up-to-date. We apologize for any inconvenience and appreciate your understanding.
+The `notebooks` folder contains code snippets that we used during our development process. You can find a comprehensive index of these notebooks [here](/notebooks/README.md). However, please note that the documentation within each notebook is currently limited and may not be up-to-date. We apologize for any inconvenience and appreciate your understanding.
 
 ## Reference Projects
 
