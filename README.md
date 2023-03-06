@@ -12,7 +12,7 @@ SegmentStyler is a framework for part-aware mesh texture editing that uses natur
 
 ### Note
 
-> This project was implemented during a Guided Research practical course at [TUM](https://www.tum.de/) in the Winter Semester of 2022/2023 by [Maximilian Winter](maximilian96.winter@tum.de) and [Murilo Bellatini](mailto:bellatini@in.tum.de).
+> This project was implemented during a Guided Research practical course at [TUM](https://www.tum.de/) in the Winter Semester of 2022/2023 by [Maximilian Winter](mailto:maximilian96.winter@tum.de) and [Murilo Bellatini](mailto:bellatini@in.tum.de).
 
 ## Getting Started
 
