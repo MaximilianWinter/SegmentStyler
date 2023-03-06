@@ -10,6 +10,12 @@ from src.utils.utils import device
 
 class Text2MeshMultiMLP(Text2MeshExtended):
     def __init__(self, args, data_dict):
+        """
+        An even further extended variation of text2mesh, incorporating multiple MLPs (neural stylers),
+        and (optionally) biased views.
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__(args, data_dict)
 
         self.mlp = None
@@ -25,6 +31,12 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         self.mask_backward = MaskBackward.apply
 
     def forward(self, vertices):
+        """
+        Forward pass.
+        @param vertices: torch.tensor, shape (N, 3)
+        @returns: dict, containing renderings and their encodings (in CLIP space),
+                    additionally contains a color regularization term (unused)
+        """
         # Prop. through MLPs
         pred_rgb, pred_normal = self.prop_through_mlps(vertices)
 
@@ -44,6 +56,15 @@ class Text2MeshMultiMLP(Text2MeshExtended):
     def biased_render_and_encode(
         self, center_point, distance, covariances, principal_axes, num_vertices
     ):
+        """
+        Wrapper function for rendering, applying augmentations and encoding. Biases the renderings' view points
+        to better capture all relevant object parts.
+        @param center_point, torch.tensor, shape (3,), point around which to render
+        @param distance, float, distance between camera and center point
+        @param covariances, torch.tensor, from PCA
+        @param principal_axes, torch.tensor, from PCA
+        @param num_vertices, int
+        """
         # Rendering
         rendered_images, _, _ = self.renderer.render_sampled_views_along_principal_axes(
             self.base_mesh,
@@ -90,6 +111,10 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         return encoded_renders_dict, rendered_images
 
     def prop_through_mlps(self, vertices):
+        """
+        Wrapper function for propagating through all MLPs, incl. backward masking.
+        @param vertices, torch.tensor, shape (N, 3)
+        """
         # Prop. through MLPs
         pred_rgb = None
         pred_normal = None
@@ -123,6 +148,13 @@ class Text2MeshMultiMLP(Text2MeshExtended):
         return pred_rgb, pred_normal
 
     def render_augment_encode(self, vertices, pred_rgb, pred_normal):
+        """
+        Wrapper function for rendering, applying augmentations and encoding.
+        Includes backward masking.
+        @param vertices, torch.tensor, shape (N, 3)
+        @param pred_rgb, torch.tensor, shape (N, 3)
+        @param pred_normal, torch.tensor, shape (N, 3)
+        """
         # Rendering, Augmentations and CLIP encoding per prompt
         encoded_renders_dict_per_prompt = {}
         rendered_images_per_prompt = None

@@ -2,6 +2,9 @@ import torch
 
 
 class MaskBackward(torch.autograd.Function):
+    """
+    Custom layer for masking out gradients during the backward pass.
+    """
 
     @staticmethod
     def forward(ctx, input, mask):
@@ -15,6 +18,9 @@ class MaskBackward(torch.autograd.Function):
 
 
 class NumericsBackward(torch.autograd.Function):
+    """
+    Custom layer for rounding gradients during backward pass.
+    """
 
     @staticmethod
     def forward(ctx, input):
@@ -26,6 +32,9 @@ class NumericsBackward(torch.autograd.Function):
 
 
 class NumericsForward(torch.autograd.Function):
+    """
+    Custom layer for rounding input tensor during forward pass.
+    """
 
     @staticmethod
     def forward(ctx, input):

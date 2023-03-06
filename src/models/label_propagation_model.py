@@ -3,19 +3,27 @@ import trimesh
 import networkx as nx
 from src.data.partglot_data import PartGlotData
 import torch.nn.functional as F
-import scipy.sparse as sp
 import numpy as np
 
 from src.models.multi_mlp_model import Text2MeshMultiMLP
-from src.submodels.gauss_estimator import GaussEstimator
-from src.utils.utils import device, gaussian3D
-from kmeans_pytorch import kmeans
+from src.utils.utils import device
 
 class Text2MeshLabelPropagation(Text2MeshMultiMLP):
     def __init__(self, args, data_dict):
+        """
+        Class for performing label propagation on the mesh for PartGlot's label prediction.
+        To use this module for post-processing, pre-trained weights must be loaded.
+        When running main.py, the flag "optimize_learned_labels" must be set for optimizing learned_labels.
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__(args, data_dict)
-        self.initial_labels = F.one_hot(torch.Tensor(data_dict["labels"]).long()).to(device) # shape N, K; TODO should we hard-code K?
-        self.learned_labels = self.initial_labels.clone().float()
+        
+        # get labels from PartGlot in one-hot encoding
+        # use them as initialization for the learned_labels tensor (will be optimized via GD)
+        # we also relax the discrete constraint to enable optimization via GD
+        self.initial_labels = F.one_hot(torch.Tensor(data_dict["labels"]).long()).to(device) # shape N, K
+        self.learned_labels = self.initial_labels.clone().float() 
         self.learned_labels.requires_grad = True
         
         # get graph laplacian
@@ -30,7 +38,22 @@ class Text2MeshLabelPropagation(Text2MeshMultiMLP):
         self.graph_laplacian  = torch.sparse.FloatTensor(i, v, torch.Size(shape)).to(device)
 
     def forward(self, vertices):
+        """
+        Forward pass. This also involves forward passes through the neural styler
+        MLPs. Even though they are not used in the current implementation, we decided to keep
+        them, as for future work we might implement a joint optimization based on
+        label prop.'s energy and the semantic CLIP loss.
+        @param vertices: torch.tensor, shape (N, 3)
+        @returns: dict, containing renderings and their encodings (in CLIP space, unused),
+                        a color regularization term (unused),
+                        the label propagation's energy label_prop_energy
+        """
+        # we first normalize the labels using softmax and a temperature of 0.1
+        # these normalized labels are used for calculating the energy (see below)
         normalized_labels = torch.softmax(self.learned_labels/1e-1, dim=1)
+
+        # the weights we use for visualization/blending are essentially discretized
+        # by passing the learned labels through a softmax with a temperature of 1e-9
         temperature = 1e-9
         visualized_labels = torch.softmax(self.learned_labels/temperature, dim=1)
         normalized_weights = self.get_weights_per_prompt(visualized_labels) # N, 3 each mask, for each prompt
@@ -62,6 +85,12 @@ class Text2MeshLabelPropagation(Text2MeshMultiMLP):
         }
 
     def get_weights_per_prompt(self, labels):
+        """
+        Helper method for converting the one-hot encoded label tensors to
+        weight masks for each prompt.
+        @param labels: torch.tensor, shape (N,K) with K=4 (usually)
+        @returns weights: dict, containing torch.tensors of shape (N,3) as values
+        """
         weights = {}
         for prompt in self.args.prompts:
             if ("legs" in prompt) and ("legs" not in PartGlotData.label_mapping.keys()):

@@ -6,10 +6,20 @@ from src.submodels.special_layers import MaskBackward
 
 class Text2MeshBackwardMasking(Text2MeshExtended):
     def __init__(self, args, data_dict):
+        """
+        This model uses backward masking with a single MLP (neural styler).
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__(args, data_dict)
         self.mask_backward = MaskBackward.apply
 
     def forward(self, vertices):
+        """
+        Forward pass.
+        @param vertices: torch.tensor, shape (N, 3)
+        @returns: dict, containing renderings and their encodings (in CLIP space)
+        """
         pred_rgb, pred_normal = self.mlp(vertices)
         (
             encoded_renders_dict_per_prompt,
@@ -22,6 +32,12 @@ class Text2MeshBackwardMasking(Text2MeshExtended):
         }
 
     def render_augment_encode(self, pred_rgb, pred_normal):
+        """
+        Wrapper function for stylizing, rendering, applying augmentations and encoding.
+        Includes backward masking.
+        @param pred_rgb, torch.tensor, shape (N, 3)
+        @param pred_normal, torch.tensor, shape (N, 3)
+        """
         encoded_renders_dict_per_prompt = {}
         rendered_images_per_prompt = None
 
