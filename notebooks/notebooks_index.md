@@ -3,7 +3,7 @@ Notebooks' Index
 CLIP
 ----
 
--   [explore-clip.ipynb](./explore-clip.ipynb): assesses CLIP's understanding of the chair domain for convenient integration with PartGlot.
+-   [explore-clip.ipynb](./explore-clip.ipynb): assesses CLIP's understanding of the chair domain to evaluate its potential integration with PartGlot.
 
 ShapeNet
 --------
