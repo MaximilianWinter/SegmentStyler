@@ -15,13 +15,15 @@ from src.partglot.utils.partglot_bspnet_preprocess import (
 )
 from src.partglot.utils.processing import vstack2dim
 from src.helper.preprocessing import get_pc_distances
+from src.helper.paths import GLOBAL_DATA_PATH
+
 
 data = ShapeNetPoints()
 points = []
 for i in tqdm(range(len(data))):
     points.append(data[i]["points"])
 
-h5_data = h5py.File("/mnt/hdd/PartGlotData/shapenet_partseg_chair_bsp.h5")
+h5_data = h5py.File(GLOBAL_DATA_PATH.joinpath("PartGlotData/shapenet_partseg_chair_bsp.h5"))
 segs_data = h5_data["data"][:].astype(np.float32)
 
 prepros_sn_pc = [
@@ -38,7 +40,7 @@ for i, src_pc in enumerate(tqdm(segs_data)):
     pg_idx_to_shapenet_idx[i] = closest_pc[0]
     all_dists.append(pc_dists)
 
-p = Path("/mnt/hdd/PartGlotData/data_mapping_chair_bsp.txt")
+p = GLOBAL_DATA_PATH.joinpath("PartGlotData/data_mapping_chair_bsp.txt")
 with open(p, "w") as fp:
     for pg_idx, shapenet_idx in pg_idx_to_shapenet_idx.items():
         synset_id, item_id = data[shapenet_idx]["name"].split("-")

@@ -16,12 +16,13 @@ from src.partglot.utils.partglot_bspnet_preprocess import (
     rotate_pointcloud,
 )
 from src.helper.preprocessing import remesh_per_part
+from src.helper.paths import GLOBAL_DATA_PATH
 
 
 class PartGlotData(torch.utils.data.Dataset):
-    dataset_path = Path("/mnt/hdd/PartGlotData")
-    shapenet_path = Path("/mnt/hdd/ShapeNetCore.v2")
-    partseg_gt_path = Path(f"/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0")
+    dataset_path = GLOBAL_DATA_PATH.joinpath("PartGlotData")
+    shapenet_path = GLOBAL_DATA_PATH.joinpath("ShapeNetCore.v2")
+    partseg_gt_path = GLOBAL_DATA_PATH.joinpath("shapenetcore_partanno_segmentation_benchmark_v0")
 
     label_mapping = {"back": 0, "seat": 1, "leg": 2, "arm": 3}
     rev_label_mapping = {0: "back", 1: "seat", 2: "leg", 3: "arm"}

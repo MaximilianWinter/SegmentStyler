@@ -3,11 +3,10 @@ import torch
 import numpy as np
 
 from src.data.mesh import Mesh
-from src.utils.utils import gaussian3D
-
+from src.helper.paths import GLOBAL_DATA_PATH
 
 class ShapeNet(torch.utils.data.Dataset):
-    dataset_path = Path("/mnt/hdd/ShapeNetCore.v2")
+    dataset_path = GLOBAL_DATA_PATH.joinpath("ShapeNetCore.v2")
 
     def __init__(self):
         """
@@ -49,7 +48,7 @@ class ShapeNet(torch.utils.data.Dataset):
 
 
 class ShapeNetPoints(torch.utils.data.Dataset):
-    dataset_path = Path("/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0")
+    dataset_path = GLOBAL_DATA_PATH.joinpath("shapenetcore_partanno_segmentation_benchmark_v0")
 
     def __init__(self):
         """

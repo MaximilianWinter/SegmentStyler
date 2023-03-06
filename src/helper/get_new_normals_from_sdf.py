@@ -11,6 +11,7 @@ import skimage
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
+from src.helper.paths import GLOBAL_DATA_PATH
 
 def normalize_shapenet(mesh):
     diag = mesh.bounds[1] - mesh.bounds[0]
@@ -22,9 +23,9 @@ def save_obj(mesh, path="./test.obj"):
             fp.write(exp_string)
 
 
-mapping_path = Path("/mnt/hdd/PartGlotData/data_mapping_chair_bsp.txt")
-dataset_path = Path("/mnt/hdd/PartGlotData")
-shapenet_path = Path("/mnt/hdd/ShapeNetCore.v2")
+mapping_path = GLOBAL_DATA_PATH.joinpath("PartGlotData/data_mapping_chair_bsp.txt")
+dataset_path = GLOBAL_DATA_PATH.joinpath("PartGlotData")
+shapenet_path = GLOBAL_DATA_PATH.joinpath("ShapeNetCore.v2")
 
 items = mapping_path.read_text().splitlines()
 for item in tqdm(items):
