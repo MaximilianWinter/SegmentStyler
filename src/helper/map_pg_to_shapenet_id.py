@@ -1,3 +1,8 @@
+"""
+Helper script for mapping PartGlot's internal sample
+ids to ShapeNet ids.
+"""
+
 import h5py
 import numpy as np
 from pathlib import Path
@@ -10,12 +15,6 @@ from src.partglot.utils.partglot_bspnet_preprocess import (
 )
 from src.partglot.utils.processing import vstack2dim
 from src.helper.preprocessing import get_pc_distances
-
-# p = Path("/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/03001627/points")
-# file = Path("/mnt/hdd/shapenetcore_partanno_segmentation_benchmark_v0/data_list.txt")
-# with open(file, "w") as fp:
-#    for child in p.iterdir():
-#        fp.write(f"03001627/{child.name[:-4]}\n")
 
 data = ShapeNetPoints()
 points = []

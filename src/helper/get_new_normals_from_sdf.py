@@ -1,6 +1,11 @@
+"""
+Helper script for remeshing ShapeNet shapes and fixing their normals.
+Used as pre-processing.
+"""
+
 import os
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
-from mesh_to_sdf import mesh_to_voxels # I'd install that in a new environment
+from mesh_to_sdf import mesh_to_voxels # recommended to install this in a separate environment
 import trimesh
 import skimage
 import numpy as np
