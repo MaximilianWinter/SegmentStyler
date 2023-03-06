@@ -4,6 +4,12 @@ SegmentStyler is a framework for part-aware mesh texture editing that uses natur
 
 <div align="center">
 
+<style>
+    small {
+        font-size: 0.6em;
+    }
+</style>
+
 | <img src="/data/img/example_chair_1.gif" width="120"> | <img src="/data/img/example_chair_2.gif" width="120"> | <img src="/data/img/example_chair_3.gif" width="120"> | <img src="/data/img/example_chair_4.gif" width="120"> | 
 | :--: | :--: | :--: | :--: |
 | <small align="center">rainbow pattern **arm**<br>glowing iron **leg**<br>guy fawkes logo **back**<br>camo pattern **seat**</small> | <small align="center">persian carpet **arm**<br>swiss cheese **leg**<br>desert sand **back**<br>fleur-de-lis pattern **seat**</small> | <small align="center">watermelon pattern **arm**<br>red leather **leg**<br>graffiti **back**<br>colorful crochet **seat**</small> | <small align="center">snowflake pattern **arm**<br>metallic **leg**<br>honeycomb **back**<br>wooden **seat**</small> |
