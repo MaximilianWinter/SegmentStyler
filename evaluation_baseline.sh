@@ -25,8 +25,8 @@ while read sample; do
         --normdepth 2 \
         --n_iter 1500 \
         --learning_rate 0.005 \
-        --output_dir evaluation_baseline \
-        --experiment_group evaluation_baseline \
+        --output_dir evaluation_a \
+        --experiment_group evaluation_a \
         --width 32 \
         --depth 2 \
         --model_name Text2MeshOriginal \
