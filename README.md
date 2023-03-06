@@ -1,5 +1,6 @@
-# SegmentStyler
+# SegmentStyler [[Project's Report](/data/report/ReportSegmentStyler.pdf)]
 ## Part-aware language-based mesh texture editing
+
 SegmentStyler is a framework for part-aware mesh texture editing that uses natural language and allows for separate customization of different mesh segments based on multiple text prompts, resulting in a coherent texture with the text input.
 
 <div align="center">
