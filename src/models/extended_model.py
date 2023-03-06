@@ -32,7 +32,8 @@ class Text2MeshExtended(Text2MeshOriginal):
         """
         Forward pass.
         @param vertices: torch.tensor, shape (N, 3)
-        @returns: dict, containing renderings and their encodings (in CLIP space), addit
+        @returns: dict, containing renderings and their encodings (in CLIP space),
+                    additionally contains a color regularization term (unused)
         """
 
         # Prop. through MLP
