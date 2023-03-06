@@ -67,8 +67,8 @@ bash example_run.sh
 ```
 
 To gain more insights, you can have a look at
-- evaluation_baseline.sh
-- ablation_study_b_to_g.sh
+- `evaluation_baseline.sh`
+- `ablation_study_b_to_g.sh`
 which were used for performing our ablation study.
 
 ## Reference Projects
