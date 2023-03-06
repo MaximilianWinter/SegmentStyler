@@ -1,13 +1,17 @@
 import torch
-from src.data.partglot_data import PartGlotData
 
 from src.models.multi_mlp_model import Text2MeshMultiMLP
 from src.submodels.gauss_estimator import GaussEstimator
 from src.utils.utils import device, gaussian3D
-from kmeans_pytorch import kmeans
 
 class Text2MeshLearnedBlending(Text2MeshMultiMLP):
     def __init__(self, args, data_dict):
+        """
+        Module used for estimating the Gaussian Blending's center points using CLIP loss.
+        This is not used in our current implementation.
+        @param args: Namespace, defining configuration
+        @param data_dict: dictionary, containing all relevant data, see corresponding dataset classes for details
+        """
         super().__init__(args, data_dict)
 
         self.gauss_estimator = GaussEstimator(
