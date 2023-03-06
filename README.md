@@ -71,6 +71,10 @@ To gain more insights, you can have a look at
 - `ablation_study_b_to_g.sh`
 which were used for performing our ablation study.
 
+### Miscellaneous
+
+The `notebooks` folder contains code snippets that we used during our development process. You can find a comprehensive index of these notebooks [here](/notebooks/notebooks_index.md). However, please note that the documentation within each notebook is currently limited and may not be up-to-date. We apologize for any inconvenience and appreciate your understanding.
+
 ## Reference Projects
 
 1. [Text2Mesh](https://github.com/threedle/text2mesh)
