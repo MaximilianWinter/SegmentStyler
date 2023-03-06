@@ -18,8 +18,8 @@ class EvalVersionConverter:
     def __init__(self):
         self.mapping = {}
         samples = Path("data/samples.txt").read_text().splitlines()
-        combined_prompts = Path("data/new_combined_sentences.txt").read_text().splitlines()
-        uncombined_prompts = Path("data/new_uncombined_sentences.txt").read_text().splitlines()
+        combined_prompts = Path("data/combined_sentences.txt").read_text().splitlines()
+        uncombined_prompts = Path("data/uncombined_sentences.txt").read_text().splitlines()
         
         version_id = 0
         for i, sample_id in enumerate(samples):

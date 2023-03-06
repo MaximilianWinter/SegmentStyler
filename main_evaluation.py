@@ -5,8 +5,8 @@ only reads log data from previously conducted experiments.
 from pathlib import Path
 from src.helper.evaluation import Evaluator
 
-combined_prompts_path = Path("data/new_combined_sentences.txt")
-uncombined_prompts_path = Path("data/new_uncombined_sentences.txt")
+combined_prompts_path = Path("data/combined_sentences.txt")
+uncombined_prompts_path = Path("data/uncombined_sentences.txt")
 
 data_dir=Path("logs/evaluation_dir/evaluation_f") # select folder with log files 
 baseline_dir=Path("logs/evaluation_dir/evaluation_a") # select baseline folder with log files
