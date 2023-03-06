@@ -2,6 +2,7 @@ logs/
 data/*
 !/data/chair_testmesh_mask.jsonc
 !/data/img/
+!/data/report/
 **/checkpoint/**
 /playground/**
 .vscode
